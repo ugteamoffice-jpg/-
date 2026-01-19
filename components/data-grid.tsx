@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useCallback, useMemo } from "react"
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react"
 import type { ReactElement } from "react"
 import type { WorkScheduleRecord, TableSchema } from "@/types/work-schedule"
 import { Button } from "@/components/ui/button"
@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
-import { CalendarIcon, Plus, Search, Trash2 } from "lucide-react"
+import { CalendarIcon, Eye, EyeOff, Plus, Trash2, Search } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { toast } from "sonner"
 import { he } from "date-fns/locale"
@@ -18,7 +18,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
-// פונקציית עזר לניקוי מזהים מה-API
+// עזר לניקוי מזהים פגומים
 const extractValidId = (id: any) => (typeof id === "string" ? id.match(/rec[a-zA-Z0-9]{10,27}/)?.[0] : null)
 
 interface DataGridProps { schema: TableSchema }
@@ -28,22 +28,21 @@ export function DataGrid({ schema }: DataGridProps): ReactElement {
   const [isLoading, setIsLoading] = useState(true)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isToolbarDatePickerOpen, setIsToolbarDatePickerOpen] = useState(false)
-  const [filterDate, setFilterDate] = useState<Date>(new Date()) // תאריך ברירת מחדל: היום
+  const [filterDate, setFilterDate] = useState<Date>(new Date())
+  const [showAllDates, setShowAllDates] = useState(false) // כפתור הצג הכל
   const [searchQuery, setSearchQuery] = useState("")
   const [newRecord, setNewRecord] = useState<Record<string, any>>({})
   const [isEditMode, setIsEditMode] = useState(false)
   const [editingRecordId, setEditingRecordId] = useState<string | null>(null)
+  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set())
 
-  // טעינת נתונים - מושך 200 נסיעות כדי לוודא שהיום הנוכחי כלול
+  // טעינת 200 רשומות אחרונות למניעת חוסר בנתונים
   const fetchRecords = useCallback(async () => {
     try {
       setIsLoading(true)
       const response = await fetch(`/api/work-schedule?take=200&t=${Date.now()}`)
       const data = await response.json()
-      const cleanRecords = (data.records || [])
-        .map((r: any) => ({ ...r, id: extractValidId(r.id) }))
-        .filter((r: any) => r.id)
-      setRecords(cleanRecords)
+      setRecords((data.records || []).map((r: any) => ({ ...r, id: extractValidId(r.id) })).filter((r: any) => r.id))
     } catch (error) {
       toast.error("שגיאה בטעינת נתונים")
     } finally {
@@ -53,29 +52,33 @@ export function DataGrid({ schema }: DataGridProps): ReactElement {
 
   useEffect(() => { fetchRecords() }, [fetchRecords])
 
-  // --- הלוגיקה שביקשת: סינון קשיח לפי התאריך שנבחר בדייטפיקר ---
+  // לוגיקת הסינון המשופרת
   const filteredRecords = useMemo(() => {
-    // הופך את התאריך הנבחר לטקסט בפורמט 2026-01-19
-    const selectedDateStr = format(filterDate, "yyyy-MM-dd")
-    const searchTerm = searchQuery.toLowerCase()
-
     return records.filter((record) => {
-      const recordDateValue = record.fields.fldT720jVmGMXFURUKL // שדה התאריך ב-Teable
-      if (!recordDateValue) return false
+      const searchTerm = searchQuery.toLowerCase()
+      
+      // 1. בדיקת תאריך (רק אם לא נבחר "הצג הכל")
+      let matchesDate = true
+      if (!showAllDates) {
+        const recordDateValue = record.fields.fldT720jVmGMXFURUKL
+        if (!recordDateValue) return false
+        
+        // השוואה לפי מחרוזת פשוטה YYYY-MM-DD
+        const rDate = new Date(recordDateValue).toISOString().split('T')[0]
+        const sDate = filterDate.toISOString().split('T')[0]
+        matchesDate = rDate === sDate
+      }
 
-      // השוואת תאריכים נקייה (בלי שעות ובלי אזורי זמן)
-      const recordDateStr = format(new Date(recordDateValue), "yyyy-MM-dd")
-      const matchesDate = recordDateStr === selectedDateStr
-
-      // סינון נוסף לפי חיפוש חופשי (לקוח/נהג)
+      // 2. בדיקת חיפוש טקסט
       const matchesSearch = (
         String(record.fields.fldKhk7JWpnlquyHQ4l || "").toLowerCase().includes(searchTerm) ||
+        String(record.fields.fldMONOIhazLclMi3WN || "").toLowerCase().includes(searchTerm) ||
         String(record.fields.fldGTTvqQ8lii1wfiS5 || "").toLowerCase().includes(searchTerm)
       )
 
       return matchesDate && matchesSearch
     })
-  }, [records, filterDate, searchQuery])
+  }, [records, filterDate, searchQuery, showAllDates])
 
   const handleSaveRecord = async () => {
     try {
@@ -94,104 +97,96 @@ export function DataGrid({ schema }: DataGridProps): ReactElement {
     } catch (error) { toast.error("שגיאה בשמירה") }
   }
 
+  const getColName = (n: string) => {
+    const map: Record<string, string> = { "Customer Name": "לקוח", "Arrival Time": "התייצבות", "Description": "תיאור", "Driver Name": "נהג", "Vehicle Number": "רכב" }
+    return map[n] || n
+  }
+
   return (
-    <div className="flex flex-col h-full bg-slate-50" dir="rtl">
+    <div className="flex flex-col h-full bg-background font-sans" dir="rtl">
       {/* סרגל כלים עליון */}
-      <div className="border-b p-4 flex items-center gap-4 bg-white shadow-sm">
+      <div className="border-b p-4 flex flex-wrap items-center gap-3 bg-white">
         <Button onClick={() => { setIsEditMode(false); setNewRecord({}); setIsDialogOpen(true); }}>
           <Plus className="h-4 w-4 ml-2" /> נסיעה חדשה
         </Button>
 
-        <div className="flex items-center gap-2 border-r pr-4">
-          <Label className="text-sm font-bold">בחר תאריך לסידור:</Label>
+        <div className="flex items-center gap-2 border-r pr-3 mr-1">
           <Popover open={isToolbarDatePickerOpen} onOpenChange={setIsToolbarDatePickerOpen}>
             <PopoverTrigger asChild>
-              <Button variant="outline" className="min-w-[150px] justify-start text-right">
+              <Button variant="outline" className={showAllDates ? "opacity-50" : ""}>
                 <CalendarIcon className="h-4 w-4 ml-2" />
                 {format(filterDate, "dd/MM/yyyy", { locale: he })}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
-              <Calendar 
-                mode="single" 
-                selected={filterDate} 
-                onSelect={(d) => { if(d){setFilterDate(d); setIsToolbarDatePickerOpen(false)} }} 
-                locale={he} 
-              />
+              <Calendar mode="single" selected={filterDate} onSelect={(d) => { if(d){setFilterDate(d); setShowAllDates(false); setIsToolbarDatePickerOpen(false)} }} locale={he} />
             </PopoverContent>
           </Popover>
+
+          <div className="flex items-center gap-2 mr-2">
+            <Checkbox id="showAll" checked={showAllDates} onCheckedChange={(val) => setShowAllDates(!!val)} />
+            <Label htmlFor="showAll" className="cursor-pointer text-sm">הצג את כל התאריכים</Label>
+          </div>
         </div>
 
-        <div className="relative mr-auto">
+        <div className="relative">
           <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input 
-            placeholder="חיפוש מהיר..." 
-            value={searchQuery} 
-            onChange={(e) => setSearchQuery(e.target.value)} 
-            className="pr-9 w-[200px]" 
-          />
+          <Input placeholder="חיפוש חופשי..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pr-9 w-[200px]" />
         </div>
       </div>
 
-      {/* טבלת סידור העבודה */}
+      {/* טבלת נתונים */}
       <div className="flex-1 overflow-auto p-4">
-        <div className="border rounded-lg bg-white shadow-sm">
+        <div className="border rounded-md bg-white">
           <Table>
-            <TableHeader className="bg-slate-100">
+            <TableHeader className="bg-slate-50">
               <TableRow>
+                <TableHead className="w-[40px]"></TableHead>
                 <TableHead className="text-right">לקוח</TableHead>
                 <TableHead className="text-right">התייצבות</TableHead>
-                <TableHead className="text-right">מסלול/תיאור</TableHead>
+                <TableHead className="text-right">תיאור</TableHead>
                 <TableHead className="text-right">נהג</TableHead>
-                <TableHead className="text-right">מספר רכב</TableHead>
+                <TableHead className="text-right">רכב</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={5} className="text-center py-10">טוען נסיעות מה-Teable...</TableCell></TableRow>
-              ) : filteredRecords.length > 0 ? (
-                filteredRecords.map((r) => (
-                  <TableRow 
-                    key={r.id} 
-                    onClick={() => { setEditingRecordId(r.id); setNewRecord(r.fields); setIsEditMode(true); setIsDialogOpen(true); }} 
-                    className="cursor-pointer hover:bg-blue-50 transition-colors"
-                  >
-                    <TableCell className="font-bold">{r.fields.fldKhk7JWpnlquyHQ4l}</TableCell>
-                    <TableCell>{r.fields.fldqFE8SRWBvx3lhI33}</TableCell>
-                    <TableCell className="max-w-md truncate">{r.fields.fldMONOIhazLclMi3WN}</TableCell>
-                    <TableCell>{r.fields.fldGTTvqQ8lii1wfiS5}</TableCell>
-                    <TableCell>{r.fields.fldwQKrYxcduWAHLOcG}</TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-20 text-muted-foreground">
-                    אין נסיעות רשומות לתאריך {format(filterDate, "dd/MM/yyyy")}
-                  </TableCell>
+                <TableRow><TableCell colSpan={6} className="text-center py-10">טוען נתונים מהשרת...</TableCell></TableRow>
+              ) : filteredRecords.map((r) => (
+                <TableRow key={r.id} onClick={() => { setEditingRecordId(r.id); setNewRecord(r.fields); setIsEditMode(true); setIsDialogOpen(true); }} className="cursor-pointer hover:bg-slate-50">
+                  <TableCell>•</TableCell>
+                  <TableCell className="text-right font-medium">{r.fields.fldKhk7JWpnlquyHQ4l}</TableCell>
+                  <TableCell className="text-right">{r.fields.fldqFE8SRWBvx3lhI33}</TableCell>
+                  <TableCell className="text-right max-w-[200px] truncate">{r.fields.fldMONOIhazLclMi3WN}</TableCell>
+                  <TableCell className="text-right">{r.fields.fldGTTvqQ8lii1wfiS5}</TableCell>
+                  <TableCell className="text-right">{r.fields.fldwQKrYxcduWAHLOcG}</TableCell>
                 </TableRow>
+              ))}
+              {!isLoading && filteredRecords.length === 0 && (
+                <TableRow><TableCell colSpan={6} className="text-center py-20 text-muted-foreground">אין נסיעות להצגה. נסה לשנות תאריך או לסמן "הצג את כל התאריכים".</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
         </div>
       </div>
 
-      {/* חלון הוספה/עריכה */}
+      {/* דיאלוג עריכה/יצירה */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader><DialogTitle>{isEditMode ? "עריכת נסיעה" : "הוספת נסיעה לסידור"}</DialogTitle></DialogHeader>
-          <div className="grid gap-6 py-4" dir="rtl">
+        <DialogContent className="max-w-xl">
+          <DialogHeader><DialogTitle>{isEditMode ? "עריכת נסיעה" : "נסיעה חדשה"}</DialogTitle></DialogHeader>
+          <div className="grid gap-4 py-4" dir="rtl">
             <div className="grid gap-2">
-              <Label>תאריך</Label>
+              <Label>תאריך נסיעה</Label>
               <Input type="date" value={newRecord.fldT720jVmGMXFURUKL || ""} onChange={(e) => setNewRecord({ ...newRecord, fldT720jVmGMXFURUKL: e.target.value })} />
             </div>
             <div className="grid gap-2">
-              <Label>תיאור הנסיעה</Label>
-              <Textarea rows={4} value={newRecord.fldMONOIhazLclMi3WN || ""} onChange={(e) => setNewRecord({ ...newRecord, fldMONOIhazLclMi3WN: e.target.value })} />
+              <Label>תיאור המסלול</Label>
+              <Textarea value={newRecord.fldMONOIhazLclMi3WN || ""} onChange={(e) => setNewRecord({ ...newRecord, fldMONOIhazLclMi3WN: e.target.value })} />
             </div>
           </div>
           <div className="flex justify-end gap-2 border-t pt-4">
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>סגור</Button>
-            <Button onClick={handleSaveRecord} className="bg-blue-600 hover:bg-blue-700">שמור ב-Teable</Button>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>ביטול</Button>
+            <Button onClick={handleSaveRecord}>שמור בסידור</Button>
           </div>
         </DialogContent>
       </Dialog>

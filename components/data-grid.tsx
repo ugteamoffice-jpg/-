@@ -5,28 +5,16 @@ import type { ReactElement } from "react"
 import type { WorkScheduleRecord, TableSchema } from "@/types/work-schedule"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
-import { CalendarIcon, Plus, Search, Trash2 } from "lucide-react"
+import { CalendarIcon, Plus, Search } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { toast } from "sonner"
 import { he } from "date-fns/locale"
-import { format, isSameDay, parseISO } from "date-fns"
+import { format } from "date-fns"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
 
 const extractValidId = (id: any) => (typeof id === "string" ? id.match(/rec[a-zA-Z0-9]{10,27}/)?.[0] : null)
 
@@ -35,7 +23,7 @@ export function DataGrid({ schema }: { schema: TableSchema }): ReactElement {
   const [isLoading, setIsLoading] = useState(true)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isToolbarDatePickerOpen, setIsToolbarDatePickerOpen] = useState(false)
-  const [filterDate, setFilterDate] = useState<Date>(new Date())
+  const [filterDate, setFilterDate] = useState<Date>(new Date()) // תאריך נבחר בלוח השנה
   const [searchQuery, setSearchQuery] = useState("")
   const [newRecord, setNewRecord] = useState<Record<string, any>>({})
   const [isEditMode, setIsEditMode] = useState(false)
@@ -44,6 +32,7 @@ export function DataGrid({ schema }: { schema: TableSchema }): ReactElement {
   const fetchRecords = useCallback(async () => {
     try {
       setIsLoading(true)
+      // מושך את הנסיעות האחרונות מה-Teable
       const response = await fetch(`/api/work-schedule?take=200&t=${Date.now()}`)
       const data = await response.json()
       setRecords((data.records || []).map((r: any) => ({ ...r, id: extractValidId(r.id) })).filter((r: any) => r.id))
@@ -56,18 +45,22 @@ export function DataGrid({ schema }: { schema: TableSchema }): ReactElement {
 
   useEffect(() => { fetchRecords() }, [fetchRecords])
 
-  // סינון הנסיעות לפי התאריך שנבחר בלוח השנה
+  // --- הלוגיקה של הסינון: השוואה ישירה של שדה התאריך ---
   const filteredRecords = useMemo(() => {
+    // הופך את התאריך שנבחר בממשק לטקסט (למשל: 2026-01-19)
+    const selectedDateStr = format(filterDate, "yyyy-MM-dd")
     const searchTerm = searchQuery.toLowerCase()
 
     return records.filter((record) => {
-      // שדה התאריך ב-Teable
-      const recordDateValue = record.fields.fldT720jVmGMXFURUKL 
+      // שואב את התאריך משדה fldT720jVmGMXFURUKL ב-Teable
+      const recordDateValue = record.fields.fldT720jVmGMXFURUKL
       if (!recordDateValue) return false
 
-      // השוואה בטוחה של תאריכים
-      const recordDate = parseISO(recordDateValue)
-      const matchesDate = isSameDay(recordDate, filterDate)
+      // הופך את התאריך מהטבלה לטקסט באותו פורמט בדיוק
+      const recordDateStr = format(new Date(recordDateValue), "yyyy-MM-dd")
+      
+      // בדיקה: האם התאריך בטבלה שווה לתאריך שבחרת בדייטפיקר?
+      const matchesDate = recordDateStr === selectedDateStr
       
       const matchesSearch = String(record.fields.fldKhk7JWpnlquyHQ4l || "").toLowerCase().includes(searchTerm)
 
@@ -82,7 +75,7 @@ export function DataGrid({ schema }: { schema: TableSchema }): ReactElement {
       method, headers: { "Content-Type": "application/json" },
       body: JSON.stringify(newRecord),
     })
-    if (res.ok) { toast.success("הנסיעה נשמרה"); fetchRecords(); setIsDialogOpen(false); }
+    if (res.ok) { toast.success("נשמר ב-Teable"); fetchRecords(); setIsDialogOpen(false); }
   }
 
   return (
@@ -93,7 +86,7 @@ export function DataGrid({ schema }: { schema: TableSchema }): ReactElement {
         </Button>
 
         <div className="flex items-center gap-2 border-r pr-4">
-          <Label className="font-bold">תאריך:</Label>
+          <Label className="font-bold">תאריך לסידור:</Label>
           <Popover open={isToolbarDatePickerOpen} onOpenChange={setIsToolbarDatePickerOpen}>
             <PopoverTrigger asChild>
               <Button variant="outline" className="min-w-[140px] text-right">
@@ -127,7 +120,7 @@ export function DataGrid({ schema }: { schema: TableSchema }): ReactElement {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={5} className="text-center py-10">טוען נתונים...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={5} className="text-center py-10">טוען סידור עבודה...</TableCell></TableRow>
               ) : filteredRecords.length > 0 ? (
                 filteredRecords.map((r) => (
                   <TableRow key={r.id} onClick={() => { setEditingRecordId(r.id); setNewRecord(r.fields); setIsEditMode(true); setIsDialogOpen(true); }} className="cursor-pointer hover:bg-blue-50">
@@ -161,7 +154,7 @@ export function DataGrid({ schema }: { schema: TableSchema }): ReactElement {
           </div>
           <div className="flex justify-end gap-2 border-t pt-4">
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>ביטול</Button>
-            <Button onClick={handleSaveRecord} className="bg-blue-600 hover:bg-blue-700">שמור</Button>
+            <Button onClick={handleSaveRecord} className="bg-blue-600 hover:bg-blue-700">שמור שינויים</Button>
           </div>
         </DialogContent>
       </Dialog>

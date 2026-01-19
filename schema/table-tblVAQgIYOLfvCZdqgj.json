@@ -1,0 +1,383 @@
+{
+  "id": "tblVAQgIYOLfvCZdqgj",
+  "name": "סידור עבודה",
+  "description": null,
+  "fields": [
+    {
+      "id": "fldT720jVmGMXFURUKL",
+      "name": "תאריך",
+      "type": "date",
+      "description": null,
+      "options": {
+        "formatting": {
+          "date": "D/M/YYYY",
+          "time": "None",
+          "timeZone": "Asia/Jerusalem"
+        }
+      },
+      "cellValueType": "dateTime",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": null
+    },
+    {
+      "id": "fldqFE8SRWBvx3lhI33",
+      "name": "התייצבות",
+      "type": "singleLineText",
+      "description": null,
+      "options": {},
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": null
+    },
+    {
+      "id": "fldMONOIhazLclMi3WN",
+      "name": "תיאור",
+      "type": "longText",
+      "description": null,
+      "options": {},
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": null
+    },
+    {
+      "id": "fldiIu1Wm6gC2665QdN",
+      "name": "חזור",
+      "type": "singleLineText",
+      "description": null,
+      "options": {},
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": null
+    },
+    {
+      "id": "fldjMfOvWEu7HtjSQmv",
+      "name": "שלח",
+      "type": "checkbox",
+      "description": null,
+      "options": {},
+      "cellValueType": "boolean",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": null
+    },
+    {
+      "id": "fldoOFQdbIVJthTngkg",
+      "name": "מאושר",
+      "type": "checkbox",
+      "description": null,
+      "options": {},
+      "cellValueType": "boolean",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": null
+    },
+    {
+      "id": "fldpPsdEQlpmh7UtZ0G",
+      "name": "מחיר לקוח+ מע\"מ",
+      "type": "number",
+      "description": null,
+      "options": {
+        "formatting": {
+          "precision": 2,
+          "type": "decimal"
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": null
+    },
+    {
+      "id": "fldF2pbjDa4PjHtm0bP",
+      "name": "מחיר לקוח כולל מע\"מ",
+      "type": "number",
+      "description": null,
+      "options": {
+        "formatting": {
+          "precision": 2,
+          "type": "decimal"
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": null
+    },
+    {
+      "id": "fldcSKtFOjZMDyWHALR",
+      "name": "מע\"מ",
+      "type": "number",
+      "description": null,
+      "options": {
+        "formatting": {
+          "precision": 2,
+          "type": "decimal"
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": null
+    },
+    {
+      "id": "fldJrzZk9KXj8bn5Rrl",
+      "name": "מחיר נהג+ מע\"מ",
+      "type": "number",
+      "description": null,
+      "options": {
+        "formatting": {
+          "precision": 2,
+          "type": "decimal"
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": null
+    },
+    {
+      "id": "fldhBH2HAFeNviGwRlu",
+      "name": "מחיר נהג כולל מע\"מ",
+      "type": "number",
+      "description": null,
+      "options": {
+        "formatting": {
+          "precision": 2,
+          "type": "decimal"
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": null
+    },
+    {
+      "id": "fldWeK6U7xPnkEFCOgx",
+      "name": "הערות לנהג",
+      "type": "longText",
+      "description": null,
+      "options": {},
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": null
+    },
+    {
+      "id": "fldjh2IDuPaJMXIpbpg",
+      "name": "הערות מנהל",
+      "type": "longText",
+      "description": null,
+      "options": {},
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": null
+    },
+    {
+      "id": "fldwiQrnnM5roYUmSOd",
+      "name": "שם מזמין",
+      "type": "singleLineText",
+      "description": null,
+      "options": {},
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": null
+    },
+    {
+      "id": "fldBvclPS0jDWOMtSed",
+      "name": "טלפון נייד",
+      "type": "number",
+      "description": null,
+      "options": {
+        "formatting": {
+          "precision": 0,
+          "type": "decimal"
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": null
+    },
+    {
+      "id": "fldBgekMAmJGCJ74xTH",
+      "name": "ת\"ז",
+      "type": "number",
+      "description": null,
+      "options": {
+        "formatting": {
+          "precision": 0,
+          "type": "decimal"
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": null
+    },
+    {
+      "id": "fldIzCFfqbGuNtQGVqr",
+      "name": "רווח+ מע\"מ",
+      "type": "formula",
+      "description": null,
+      "options": {
+        "expression": "{fldNiPjXmxzjmO3hmes} - {fldR9T08H44CGicgMqM}",
+        "timeZone": "Asia/Jerusalem",
+        "formatting": {
+          "type": "decimal",
+          "precision": 2
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": true,
+      "isMultipleCellValue": null
+    },
+    {
+      "id": "fld1D8vLMOAfE6YDkJw",
+      "name": "פורמולה מחיר לקוח כולל מע\"מ",
+      "type": "formula",
+      "description": null,
+      "options": {
+        "expression": "IF(\n  {fldpPsdEQlpmh7UtZ0G}, \n  {fldpPsdEQlpmh7UtZ0G} * (1 + ({fldcSKtFOjZMDyWHALR} / 100)),\n  IF(\n    {fldF2pbjDa4PjHtm0bP}, \n    {fldF2pbjDa4PjHtm0bP}, \n    0\n  )\n)",
+        "timeZone": "Asia/Jerusalem",
+        "formatting": {
+          "type": "decimal",
+          "precision": 2
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": true,
+      "isMultipleCellValue": null
+    },
+    {
+      "id": "fldNiPjXmxzjmO3hmes",
+      "name": "פורמולה מחיר לקוח לפני מע\"מ",
+      "type": "formula",
+      "description": null,
+      "options": {
+        "expression": "IF(\n  {fld1D8vLMOAfE6YDkJw},\n  {fld1D8vLMOAfE6YDkJw} / (1 + ({fldcSKtFOjZMDyWHALR} / 100)),\n  0\n)",
+        "timeZone": "Asia/Jerusalem",
+        "formatting": {
+          "type": "decimal",
+          "precision": 2
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": true,
+      "isMultipleCellValue": null
+    },
+    {
+      "id": "fldYKvr7bgWRXeubcE0",
+      "name": "פורמולה מחיר נהג כולל מע\"מ",
+      "type": "formula",
+      "description": null,
+      "options": {
+        "expression": "IF(\n  {fldJrzZk9KXj8bn5Rrl},\n  {fldJrzZk9KXj8bn5Rrl} * (1 + ({fldcSKtFOjZMDyWHALR} / 100)),\n  IF(\n    {fldhBH2HAFeNviGwRlu},\n    {fldhBH2HAFeNviGwRlu},\n    0\n  )\n)",
+        "timeZone": "Asia/Jerusalem",
+        "formatting": {
+          "type": "decimal",
+          "precision": 2
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": true,
+      "isMultipleCellValue": null
+    },
+    {
+      "id": "fldR9T08H44CGicgMqM",
+      "name": "פורמולה מחיר נהג לפני מע\"מ",
+      "type": "formula",
+      "description": null,
+      "options": {
+        "expression": "IF(\n  {fldYKvr7bgWRXeubcE0},\n  {fldYKvr7bgWRXeubcE0} / (1 + ({fldcSKtFOjZMDyWHALR} / 100)),\n  0\n)",
+        "timeZone": "Asia/Jerusalem",
+        "formatting": {
+          "type": "decimal",
+          "precision": 2
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": true,
+      "isMultipleCellValue": null
+    },
+    {
+      "id": "fldKhk7JWpnlquyHQ4l",
+      "name": "שם לקוח",
+      "type": "link",
+      "description": null,
+      "options": {
+        "foreignTableId": "tbl4dSxUqAf6vsuGCsM",
+        "relationship": "manyOne",
+        "isOneWay": true,
+        "lookupFieldId": "fldS0PNTKZseugMVhcA",
+        "fkHostTableName": "bse1pHlESYWysI2D4VR.sydvr_bvdh",
+        "selfKeyName": "__id",
+        "foreignKeyName": "__fk_fldKhk7JWpnlquyHQ4l",
+        "filter": null,
+        "filterByViewId": "viwty4aZUW085Cb6mCB",
+        "visibleFieldIds": [
+          "fldS0PNTKZseugMVhcA",
+          "fldRRT9e1WHUmhxUs2C"
+        ]
+      },
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": null
+    },
+    {
+      "id": "fldeppUjfYTJgZZi6VI",
+      "name": "סוג רכב",
+      "type": "link",
+      "description": null,
+      "options": {
+        "relationship": "manyOne",
+        "foreignTableId": "tblRSYoKFHCaDyivO9k",
+        "lookupFieldId": "fldUBeIPRhJ9JuUHXBL",
+        "fkHostTableName": "bse1pHlESYWysI2D4VR.sydvr_bvdh",
+        "selfKeyName": "__id",
+        "foreignKeyName": "__fk_fldeppUjfYTJgZZi6VI",
+        "symmetricFieldId": "fld6ckj9VpKT7GxqfAx",
+        "filter": null,
+        "filterByViewId": "viwVithyoLTddmUUMIU",
+        "visibleFieldIds": null
+      },
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": null
+    },
+    {
+      "id": "fldGTTvqQ8lii1wfiS5",
+      "name": "שם נהג",
+      "type": "link",
+      "description": null,
+      "options": {
+        "relationship": "oneOne",
+        "foreignTableId": "tblsMGUyHILuKGGASix",
+        "lookupFieldId": "fld1t6uHDVHJT7mL6Hv",
+        "fkHostTableName": "bse1pHlESYWysI2D4VR.qblnym_nhgym",
+        "selfKeyName": "__fk_fldpoS43gbAmvi2RZS1",
+        "foreignKeyName": "__id",
+        "symmetricFieldId": "fldpoS43gbAmvi2RZS1",
+        "filter": null,
+        "filterByViewId": "viwUH4yt5Fm30FbA3Er",
+        "visibleFieldIds": null
+      },
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": null
+    }
+  ]
+}

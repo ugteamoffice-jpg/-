@@ -13,7 +13,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table"
-import { ArrowUpDown, ChevronDown, Plus, Search, Calendar as CalendarIcon, X } from "lucide-react"
+import { ArrowUpDown, ChevronDown, Plus, Search, Calendar as CalendarIcon, X, Trash2 } from "lucide-react"
 import { format } from "date-fns"
 import { he } from "date-fns/locale"
 
@@ -36,6 +36,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { NewRideDialog } from "@/components/new-ride-dialog"
+import { RecordEditDialog } from "@/components/record-edit-dialog" 
 import { Calendar } from "@/components/ui/calendar"
 import {
   Popover,
@@ -43,8 +44,9 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
+import { useToast } from "@/hooks/use-toast"
 
-// ממשק הנתונים
+// הגדרת טיפוס הנתונים
 export interface WorkScheduleRecord {
   id: string
   fields: {
@@ -68,13 +70,16 @@ export interface WorkScheduleRecord {
   }
 }
 
-// הגדרת עמודות בטוחה (מונעת קריסות)
+// הגדרת העמודות
 export const columns: ColumnDef<WorkScheduleRecord>[] = [
   {
     id: "select",
     header: ({ table }) => (
       <Checkbox
-        checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && "indeterminate")}
+        checked={
+          table.getIsAllPageRowsSelected() ||
+          (table.getIsSomePageRowsSelected() && "indeterminate")
+        }
         onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
         aria-label="Select all"
         className="translate-y-[2px]"
@@ -92,25 +97,31 @@ export const columns: ColumnDef<WorkScheduleRecord>[] = [
     enableHiding: false,
   },
   {
-    accessorKey: "fields.fldjMfOvWEu7HtjSQmv", // שלח
+    accessorKey: "fields.fldjMfOvWEu7HtjSQmv",
     header: "שלח",
     cell: ({ row }) => (
       <div className="flex justify-center">
-        <Checkbox checked={row.original.fields.fldjMfOvWEu7HtjSQmv as boolean} disabled />
+        <Checkbox 
+          checked={row.original.fields.fldjMfOvWEu7HtjSQmv as boolean} 
+          disabled 
+        />
       </div>
     ),
   },
   {
-    accessorKey: "fields.fldoOFQdbIVJthTngkg", // מאושר
+    accessorKey: "fields.fldoOFQdbIVJthTngkg",
     header: "מאושר",
     cell: ({ row }) => (
       <div className="flex justify-center">
-        <Checkbox checked={row.original.fields.fldoOFQdbIVJthTngkg as boolean} disabled />
+        <Checkbox 
+          checked={row.original.fields.fldoOFQdbIVJthTngkg as boolean} 
+          disabled 
+        />
       </div>
     ),
   },
   {
-    accessorKey: "fields.fldS0PNTKZseugMVhcA", // שם לקוח
+    accessorKey: "fields.fldS0PNTKZseugMVhcA",
     header: "שם לקוח",
     cell: ({ row }) => {
       const val = row.original.fields.fldS0PNTKZseugMVhcA
@@ -120,12 +131,12 @@ export const columns: ColumnDef<WorkScheduleRecord>[] = [
     },
   },
   {
-    accessorKey: "fields.fldqFE8SRWBvx3lhI33", // התייצבות
+    accessorKey: "fields.fldqFE8SRWBvx3lhI33",
     header: "התייצבות",
     cell: ({ row }) => <div className="text-right">{row.original.fields.fldqFE8SRWBvx3lhI33 || ""}</div>,
   },
   {
-    accessorKey: "fields.fldMONOIhazLclMi3WN", // תיאור
+    accessorKey: "fields.fldMONOIhazLclMi3WN",
     header: "תיאור",
     cell: ({ row }) => (
       <div className="text-right max-w-[200px] truncate" title={row.original.fields.fldMONOIhazLclMi3WN}>
@@ -134,12 +145,12 @@ export const columns: ColumnDef<WorkScheduleRecord>[] = [
     ),
   },
   {
-    accessorKey: "fields.fldiIu1Wm6gC2665QdN", // חזור
+    accessorKey: "fields.fldiIu1Wm6gC2665QdN",
     header: "חזור",
     cell: ({ row }) => <div className="text-right">{row.original.fields.fldiIu1Wm6gC2665QdN || ""}</div>,
   },
   {
-    accessorKey: "fields.fldeppUjfYTJgZZi6VI", // סוג רכב
+    accessorKey: "fields.fldeppUjfYTJgZZi6VI",
     header: "סוג רכב",
     cell: ({ row }) => {
       const val = row.original.fields.fldeppUjfYTJgZZi6VI
@@ -149,7 +160,7 @@ export const columns: ColumnDef<WorkScheduleRecord>[] = [
     },
   },
   {
-    accessorKey: "fields.fldGTTvqQ8lii1wfiS5", // שם נהג
+    accessorKey: "fields.fldGTTvqQ8lii1wfiS5",
     header: "שם נהג",
     cell: ({ row }) => {
       const val = row.original.fields.fldGTTvqQ8lii1wfiS5
@@ -159,32 +170,38 @@ export const columns: ColumnDef<WorkScheduleRecord>[] = [
     },
   },
   {
-    accessorKey: "fields.fldpPsdEQlpmh7UtZ0G", // מחיר לקוח+ מע"מ
+    accessorKey: "fields.fldpPsdEQlpmh7UtZ0G",
     header: 'מחיר לקוח+ מע"מ',
     cell: ({ row }) => <div className="text-right">{row.original.fields.fldpPsdEQlpmh7UtZ0G}</div>,
   },
   {
-    accessorKey: "fields.fldJrzZk9KXj8bn5Rrl", // מחיר נהג+ מע"מ
+    accessorKey: "fields.fldJrzZk9KXj8bn5Rrl",
     header: 'מחיר נהג+ מע"מ',
     cell: ({ row }) => <div className="text-right">{row.original.fields.fldJrzZk9KXj8bn5Rrl}</div>,
   },
   {
-    accessorKey: "fields.fldv3s20240101", // רווח+ מע"מ
+    accessorKey: "fields.fldv3s20240101",
     header: 'רווח+ מע"מ',
     cell: ({ row }) => <div className="text-right">{row.original.fields.fldv3s20240101}</div>,
   },
   {
-    accessorKey: "fields.fldv3s20240102", // הערות לנהג
+    accessorKey: "fields.fldv3s20240102",
     header: "הערות לנהג",
     cell: ({ row }) => <div className="text-right">{row.original.fields.fldv3s20240102 || ""}</div>,
   },
   {
-    accessorKey: "fields.fldT720jVmGMXFURUKL", // תאריך
-    header: ({ column }) => (
-      <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
-        תאריך <ArrowUpDown className="ml-2 h-4 w-4" />
-      </Button>
-    ),
+    accessorKey: "fields.fldT720jVmGMXFURUKL",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          תאריך
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      )
+    },
     cell: ({ row }) => {
       const date = row.original.fields.fldT720jVmGMXFURUKL
       if (!date) return <div className="text-right font-medium">-</div>
@@ -194,8 +211,6 @@ export const columns: ColumnDef<WorkScheduleRecord>[] = [
 ]
 
 export function DataGrid({ schema }: { schema: any }) {
-  // אם הקומפוננטה הזו קיימת, הדבק כאן את אותו תוכן של פונקציית DataGrid ששלחתי קודם
-  // רק תשנה את השם מ-DataGrid ל-WorkScheduleGrid בשורה הראשונה של הפונקציה
   const [data, setData] = React.useState<WorkScheduleRecord[]>([])
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
@@ -203,25 +218,60 @@ export function DataGrid({ schema }: { schema: any }) {
   const [rowSelection, setRowSelection] = React.useState({})
   const [globalFilter, setGlobalFilter] = React.useState("")
   const [dateFilter, setDateFilter] = React.useState<Date | undefined>(undefined)
+  const { toast } = useToast()
 
   const fetchData = async () => {
     try {
       const response = await fetch('/api/table/tblVAQgIYOLfvCZdqgj')
       const json = await response.json()
-      if (json.records) setData(json.records)
+      if (json.records) {
+        setData(json.records)
+      }
     } catch (error) {
       console.error("Failed to fetch data:", error)
     }
   }
 
-  React.useEffect(() => { fetchData() }, [])
+  React.useEffect(() => {
+    fetchData()
+  }, [])
+
+  // מחיקת שורות מסומנות - הפיצ'ר החסר!
+  const handleDeleteSelected = async () => {
+    const selectedIds = Object.keys(rowSelection)
+    if (selectedIds.length === 0) return
+
+    if (!confirm("האם אתה בטוח שברצונך למחוק את הרשומות המסומנות?")) return
+
+    // שליפת ה-IDs האמיתיים של הרשומות
+    const recordsToDelete = table.getFilteredSelectedRowModel().rows.map(row => row.original.id)
+
+    try {
+      // מחיקה בלולאה (פשוט וקל)
+      for (const id of recordsToDelete) {
+        await fetch(`/api/work-schedule/${id}`, { method: "DELETE" })
+      }
+      
+      toast({ title: "נמחק בהצלחה", description: `${recordsToDelete.length} רשומות נמחקו.` })
+      setRowSelection({}) // איפוס בחירה
+      fetchData() // רענון
+    } catch (error) {
+      toast({ title: "שגיאה", description: "ארעה שגיאה במחיקה.", variant: "destructive" })
+    }
+  }
 
   const filteredData = React.useMemo(() => {
     let filtered = data
+
     if (dateFilter) {
       const dateStr = format(dateFilter, "yyyy-MM-dd")
-      filtered = filtered.filter(item => item.fields.fldT720jVmGMXFURUKL?.startsWith(dateStr))
+      filtered = filtered.filter(item => {
+        const itemDate = item.fields.fldT720jVmGMXFURUKL
+        if (!itemDate) return false
+        return itemDate.startsWith(dateStr)
+      })
     }
+
     if (globalFilter) {
       const lowerFilter = globalFilter.toLowerCase()
       filtered = filtered.filter((item) => {
@@ -233,6 +283,7 @@ export function DataGrid({ schema }: { schema: any }) {
         })
       })
     }
+
     return filtered
   }, [data, dateFilter, globalFilter])
 
@@ -247,73 +298,170 @@ export function DataGrid({ schema }: { schema: any }) {
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
-    state: { sorting, columnFilters, columnVisibility, rowSelection },
+    state: {
+      sorting,
+      columnFilters,
+      columnVisibility,
+      rowSelection,
+    },
   })
 
   return (
     <div className="w-full space-y-4 p-4" dir="rtl">
       <div className="flex items-center justify-between gap-4">
+        {/* חיפוש */}
         <div className="flex items-center gap-2 flex-1 max-w-sm">
            <Search className="w-4 h-4 text-muted-foreground" />
-           <Input placeholder="חיפוש..." value={globalFilter} onChange={(e) => setGlobalFilter(e.target.value)} className="max-w-sm" />
+           <Input
+             placeholder="חיפוש..."
+             value={globalFilter}
+             onChange={(event) => setGlobalFilter(event.target.value)}
+             className="max-w-sm"
+           />
         </div>
+
         <div className="flex items-center gap-2">
+          {/* פח אשפה - מופיע רק כשבוחרים שורות */}
+          {Object.keys(rowSelection).length > 0 && (
+            <Button variant="destructive" size="sm" onClick={handleDeleteSelected}>
+              <Trash2 className="h-4 w-4 ml-2" />
+              מחק ({Object.keys(rowSelection).length})
+            </Button>
+          )}
+
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant={"outline"} className={cn("w-[240px] justify-start text-right font-normal", !dateFilter && "text-muted-foreground")}>
+              <Button
+                variant={"outline"}
+                className={cn(
+                  "w-[240px] justify-start text-right font-normal",
+                  !dateFilter && "text-muted-foreground"
+                )}
+              >
                 <CalendarIcon className="ml-2 h-4 w-4" />
                 {dateFilter ? format(dateFilter, "PPP", { locale: he }) : <span>בחר תאריך</span>}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="end">
-              <Calendar mode="single" selected={dateFilter} onSelect={setDateFilter} initialFocus />
+              <Calendar
+                mode="single"
+                selected={dateFilter}
+                onSelect={setDateFilter}
+                initialFocus
+              />
             </PopoverContent>
           </Popover>
-          {dateFilter && <Button variant="ghost" size="icon" onClick={() => setDateFilter(undefined)}><X className="h-4 w-4" /></Button>}
+          
+          {dateFilter && (
+             <Button variant="ghost" size="icon" onClick={() => setDateFilter(undefined)}>
+               <X className="h-4 w-4" />
+             </Button>
+          )}
+
           <NewRideDialog onRideCreated={fetchData} />
+          
           <DropdownMenu>
-            <DropdownMenuTrigger asChild><Button variant="outline" className="ml-auto">עמודות <ChevronDown className="ml-2 h-4 w-4" /></Button></DropdownMenuTrigger>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="ml-auto">
+                עמודות <ChevronDown className="ml-2 h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              {table.getAllColumns().filter((column) => column.getCanHide()).map((column) => (
-                <DropdownMenuCheckboxItem key={column.id} className="capitalize" checked={column.getIsVisible()} onCheckedChange={(value) => column.toggleVisibility(!!value)}>{column.id}</DropdownMenuCheckboxItem>
-              ))}
+              {table
+                .getAllColumns()
+                .filter((column) => column.getCanHide())
+                .map((column) => {
+                  return (
+                    <DropdownMenuCheckboxItem
+                      key={column.id}
+                      className="capitalize"
+                      checked={column.getIsVisible()}
+                      onCheckedChange={(value) =>
+                        column.toggleVisibility(!!value)
+                      }
+                    >
+                      {column.id}
+                    </DropdownMenuCheckboxItem>
+                  )
+                })}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </div>
+      
       <div className="rounded-md border">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id} className="text-right">
-                    {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                  </TableHead>
-                ))}
+                {headerGroup.headers.map((header) => {
+                  return (
+                    <TableHead key={header.id} className="text-right">
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+                    </TableHead>
+                  )
+                })}
               </TableRow>
             ))}
           </TableHeader>
           <TableBody>
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
+                <TableRow
+                  key={row.id}
+                  data-state={row.getIsSelected() && "selected"}
+                >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="text-right">{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
+                    <TableCell key={cell.id} className="text-right">
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
+                    </TableCell>
                   ))}
                 </TableRow>
               ))
             ) : (
-              <TableRow><TableCell colSpan={columns.length} className="h-24 text-center">אין תוצאות.</TableCell></TableRow>
+              <TableRow>
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center"
+                >
+                  אין תוצאות.
+                </TableCell>
+              </TableRow>
             )}
           </TableBody>
         </Table>
       </div>
+      
       <div className="flex items-center justify-end space-x-2 py-4">
-        <div className="flex-1 text-sm text-muted-foreground">{table.getFilteredSelectedRowModel().rows.length} מתוך {table.getFilteredRowModel().rows.length} שורות נבחרו.</div>
+        <div className="flex-1 text-sm text-muted-foreground">
+          {table.getFilteredSelectedRowModel().rows.length} מתוך{" "}
+          {table.getFilteredRowModel().rows.length} שורות נבחרו.
+        </div>
         <div className="space-x-2">
-          <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>הקודם</Button>
-          <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>הבא</Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => table.previousPage()}
+            disabled={!table.getCanPreviousPage()}
+          >
+            הקודם
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => table.nextPage()}
+            disabled={!table.getCanNextPage()}
+          >
+            הבא
+          </Button>
         </div>
       </div>
     </div>

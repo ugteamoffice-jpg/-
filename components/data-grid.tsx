@@ -36,7 +36,6 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { NewRideDialog } from "@/components/new-ride-dialog"
-// import { EditRideDialog } from "@/components/edit-ride-dialog" // וודא שהקובץ קיים
 import { Calendar } from "@/components/ui/calendar"
 import {
   Popover,
@@ -45,7 +44,7 @@ import {
 } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
 
-// הגדרת טיפוס הנתונים (Interface)
+// ממשק הנתונים
 export interface WorkScheduleRecord {
   id: string
   fields: {
@@ -69,16 +68,13 @@ export interface WorkScheduleRecord {
   }
 }
 
-// הגדרת העמודות בטבלה
+// הגדרת עמודות בטוחה (מונעת קריסות)
 export const columns: ColumnDef<WorkScheduleRecord>[] = [
   {
     id: "select",
     header: ({ table }) => (
       <Checkbox
-        checked={
-          table.getIsAllPageRowsSelected() ||
-          (table.getIsSomePageRowsSelected() && "indeterminate")
-        }
+        checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && "indeterminate")}
         onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
         aria-label="Select all"
         className="translate-y-[2px]"
@@ -100,10 +96,7 @@ export const columns: ColumnDef<WorkScheduleRecord>[] = [
     header: "שלח",
     cell: ({ row }) => (
       <div className="flex justify-center">
-        <Checkbox 
-          checked={row.original.fields.fldjMfOvWEu7HtjSQmv as boolean} 
-          disabled 
-        />
+        <Checkbox checked={row.original.fields.fldjMfOvWEu7HtjSQmv as boolean} disabled />
       </div>
     ),
   },
@@ -112,10 +105,7 @@ export const columns: ColumnDef<WorkScheduleRecord>[] = [
     header: "מאושר",
     cell: ({ row }) => (
       <div className="flex justify-center">
-        <Checkbox 
-          checked={row.original.fields.fldoOFQdbIVJthTngkg as boolean} 
-          disabled 
-        />
+        <Checkbox checked={row.original.fields.fldoOFQdbIVJthTngkg as boolean} disabled />
       </div>
     ),
   },
@@ -190,17 +180,11 @@ export const columns: ColumnDef<WorkScheduleRecord>[] = [
   },
   {
     accessorKey: "fields.fldT720jVmGMXFURUKL", // תאריך
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          תאריך
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
-      )
-    },
+    header: ({ column }) => (
+      <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
+        תאריך <ArrowUpDown className="ml-2 h-4 w-4" />
+      </Button>
+    ),
     cell: ({ row }) => {
       const date = row.original.fields.fldT720jVmGMXFURUKL
       if (!date) return <div className="text-right font-medium">-</div>
@@ -209,7 +193,9 @@ export const columns: ColumnDef<WorkScheduleRecord>[] = [
   },
 ]
 
-export function DataGrid({ schema }: { schema: any }) {
+export function WorkScheduleGrid({ schema }: { schema: any }) {
+  // אם הקומפוננטה הזו קיימת, הדבק כאן את אותו תוכן של פונקציית DataGrid ששלחתי קודם
+  // רק תשנה את השם מ-DataGrid ל-WorkScheduleGrid בשורה הראשונה של הפונקציה
   const [data, setData] = React.useState<WorkScheduleRecord[]>([])
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
@@ -222,30 +208,20 @@ export function DataGrid({ schema }: { schema: any }) {
     try {
       const response = await fetch('/api/table/tblVAQgIYOLfvCZdqgj')
       const json = await response.json()
-      if (json.records) {
-        setData(json.records)
-      }
+      if (json.records) setData(json.records)
     } catch (error) {
       console.error("Failed to fetch data:", error)
     }
   }
 
-  React.useEffect(() => {
-    fetchData()
-  }, [])
+  React.useEffect(() => { fetchData() }, [])
 
   const filteredData = React.useMemo(() => {
     let filtered = data
-
     if (dateFilter) {
       const dateStr = format(dateFilter, "yyyy-MM-dd")
-      filtered = filtered.filter(item => {
-        const itemDate = item.fields.fldT720jVmGMXFURUKL
-        if (!itemDate) return false
-        return itemDate.startsWith(dateStr)
-      })
+      filtered = filtered.filter(item => item.fields.fldT720jVmGMXFURUKL?.startsWith(dateStr))
     }
-
     if (globalFilter) {
       const lowerFilter = globalFilter.toLowerCase()
       filtered = filtered.filter((item) => {
@@ -257,7 +233,6 @@ export function DataGrid({ schema }: { schema: any }) {
         })
       })
     }
-
     return filtered
   }, [data, dateFilter, globalFilter])
 
@@ -272,164 +247,73 @@ export function DataGrid({ schema }: { schema: any }) {
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
-    state: {
-      sorting,
-      columnFilters,
-      columnVisibility,
-      rowSelection,
-    },
+    state: { sorting, columnFilters, columnVisibility, rowSelection },
   })
 
   return (
     <div className="w-full space-y-4 p-4" dir="rtl">
       <div className="flex items-center justify-between gap-4">
-        {/* חיפוש חופשי */}
         <div className="flex items-center gap-2 flex-1 max-w-sm">
            <Search className="w-4 h-4 text-muted-foreground" />
-           <Input
-             placeholder="חיפוש..."
-             value={globalFilter}
-             onChange={(event) => setGlobalFilter(event.target.value)}
-             className="max-w-sm"
-           />
+           <Input placeholder="חיפוש..." value={globalFilter} onChange={(e) => setGlobalFilter(e.target.value)} className="max-w-sm" />
         </div>
-
         <div className="flex items-center gap-2">
-          {/* פילטר תאריך */}
           <Popover>
             <PopoverTrigger asChild>
-              <Button
-                variant={"outline"}
-                className={cn(
-                  "w-[240px] justify-start text-right font-normal",
-                  !dateFilter && "text-muted-foreground"
-                )}
-              >
+              <Button variant={"outline"} className={cn("w-[240px] justify-start text-right font-normal", !dateFilter && "text-muted-foreground")}>
                 <CalendarIcon className="ml-2 h-4 w-4" />
                 {dateFilter ? format(dateFilter, "PPP", { locale: he }) : <span>בחר תאריך</span>}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="end">
-              <Calendar
-                mode="single"
-                selected={dateFilter}
-                onSelect={setDateFilter}
-                initialFocus
-              />
+              <Calendar mode="single" selected={dateFilter} onSelect={setDateFilter} initialFocus />
             </PopoverContent>
           </Popover>
-          
-          {/* כפתור ניקוי תאריך */}
-          {dateFilter && (
-             <Button variant="ghost" size="icon" onClick={() => setDateFilter(undefined)}>
-               <X className="h-4 w-4" />
-             </Button>
-          )}
-
+          {dateFilter && <Button variant="ghost" size="icon" onClick={() => setDateFilter(undefined)}><X className="h-4 w-4" /></Button>}
           <NewRideDialog onRideCreated={fetchData} />
-          
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="ml-auto">
-                עמודות <ChevronDown className="ml-2 h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
+            <DropdownMenuTrigger asChild><Button variant="outline" className="ml-auto">עמודות <ChevronDown className="ml-2 h-4 w-4" /></Button></DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              {table
-                .getAllColumns()
-                .filter((column) => column.getCanHide())
-                .map((column) => {
-                  return (
-                    <DropdownMenuCheckboxItem
-                      key={column.id}
-                      className="capitalize"
-                      checked={column.getIsVisible()}
-                      onCheckedChange={(value) =>
-                        column.toggleVisibility(!!value)
-                      }
-                    >
-                      {column.id}
-                    </DropdownMenuCheckboxItem>
-                  )
-                })}
+              {table.getAllColumns().filter((column) => column.getCanHide()).map((column) => (
+                <DropdownMenuCheckboxItem key={column.id} className="capitalize" checked={column.getIsVisible()} onCheckedChange={(value) => column.toggleVisibility(!!value)}>{column.id}</DropdownMenuCheckboxItem>
+              ))}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </div>
-      
       <div className="rounded-md border">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                  return (
-                    <TableHead key={header.id} className="text-right">
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                    </TableHead>
-                  )
-                })}
+                {headerGroup.headers.map((header) => (
+                  <TableHead key={header.id} className="text-right">
+                    {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                  </TableHead>
+                ))}
               </TableRow>
             ))}
           </TableHeader>
           <TableBody>
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
-                >
+                <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="text-right">
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
-                    </TableCell>
+                    <TableCell key={cell.id} className="text-right">{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
                   ))}
                 </TableRow>
               ))
             ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center"
-                >
-                  אין תוצאות.
-                </TableCell>
-              </TableRow>
+              <TableRow><TableCell colSpan={columns.length} className="h-24 text-center">אין תוצאות.</TableCell></TableRow>
             )}
           </TableBody>
         </Table>
       </div>
-      
       <div className="flex items-center justify-end space-x-2 py-4">
-        <div className="flex-1 text-sm text-muted-foreground">
-          {table.getFilteredSelectedRowModel().rows.length} מתוך{" "}
-          {table.getFilteredRowModel().rows.length} שורות נבחרו.
-        </div>
+        <div className="flex-1 text-sm text-muted-foreground">{table.getFilteredSelectedRowModel().rows.length} מתוך {table.getFilteredRowModel().rows.length} שורות נבחרו.</div>
         <div className="space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            הקודם
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            הבא
-          </Button>
+          <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>הקודם</Button>
+          <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>הבא</Button>
         </div>
       </div>
     </div>

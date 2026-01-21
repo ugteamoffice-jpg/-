@@ -193,7 +193,7 @@ export const columns: ColumnDef<WorkScheduleRecord>[] = [
   },
 ]
 
-export function WorkScheduleGrid({ schema }: { schema: any }) {
+export function DataGrid({ schema }: { schema: any }) {
   // אם הקומפוננטה הזו קיימת, הדבק כאן את אותו תוכן של פונקציית DataGrid ששלחתי קודם
   // רק תשנה את השם מ-DataGrid ל-WorkScheduleGrid בשורה הראשונה של הפונקציה
   const [data, setData] = React.useState<WorkScheduleRecord[]>([])

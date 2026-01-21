@@ -36,7 +36,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { NewRideDialog } from "@/components/new-ride-dialog"
-// import { EditRideDialog } from "@/components/edit-ride-dialog" // וודא שהקובץ קיים או מחק את השורה אם לא
+// import { EditRideDialog } from "@/components/edit-ride-dialog" // וודא שהקובץ קיים
 import { Calendar } from "@/components/ui/calendar"
 import {
   Popover,
@@ -124,7 +124,6 @@ export const columns: ColumnDef<WorkScheduleRecord>[] = [
     header: "שם לקוח",
     cell: ({ row }) => {
       const val = row.original.fields.fldS0PNTKZseugMVhcA
-      // תיקון קריסה: בדיקה אם זה אובייקט או מערך וחילוף לטקסט
       if (Array.isArray(val) && val[0]?.title) return <div className="text-right">{val[0].title}</div>
       if (val?.title) return <div className="text-right">{val.title}</div>
       return <div className="text-right text-muted-foreground">-</div>
@@ -154,7 +153,6 @@ export const columns: ColumnDef<WorkScheduleRecord>[] = [
     header: "סוג רכב",
     cell: ({ row }) => {
       const val = row.original.fields.fldeppUjfYTJgZZi6VI
-      // תיקון קריסה
       if (Array.isArray(val) && val[0]?.title) return <div className="text-right">{val[0].title}</div>
       if (val?.title) return <div className="text-right">{val.title}</div>
       return <div className="text-right text-muted-foreground">-</div>
@@ -165,7 +163,6 @@ export const columns: ColumnDef<WorkScheduleRecord>[] = [
     header: "שם נהג",
     cell: ({ row }) => {
       const val = row.original.fields.fldGTTvqQ8lii1wfiS5
-      // תיקון קריסה
       if (Array.isArray(val) && val[0]?.title) return <div className="text-right">{val[0].title}</div>
       if (val?.title) return <div className="text-right">{val.title}</div>
       return <div className="text-right text-muted-foreground">-</div>
@@ -221,10 +218,8 @@ export function DataGrid({ schema }: { schema: any }) {
   const [globalFilter, setGlobalFilter] = React.useState("")
   const [dateFilter, setDateFilter] = React.useState<Date | undefined>(undefined)
 
-  // פונקציית טעינת נתונים
   const fetchData = async () => {
     try {
-      // כאן אנחנו קוראים ל-API שלך
       const response = await fetch('/api/table/tblVAQgIYOLfvCZdqgj')
       const json = await response.json()
       if (json.records) {
@@ -239,7 +234,6 @@ export function DataGrid({ schema }: { schema: any }) {
     fetchData()
   }, [])
 
-  // פילטור הנתונים (כולל תאריך)
   const filteredData = React.useMemo(() => {
     let filtered = data
 
@@ -248,7 +242,6 @@ export function DataGrid({ schema }: { schema: any }) {
       filtered = filtered.filter(item => {
         const itemDate = item.fields.fldT720jVmGMXFURUKL
         if (!itemDate) return false
-        // משווים מחרוזת תאריך (למשל 2026-01-20)
         return itemDate.startsWith(dateStr)
       })
     }

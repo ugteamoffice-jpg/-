@@ -36,7 +36,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { NewRideDialog } from "@/components/new-ride-dialog"
-import { EditRideDialog } from "@/components/edit-ride-dialog"
+// import { EditRideDialog } from "@/components/edit-ride-dialog" // וודא שהקובץ קיים או מחק את השורה אם לא
 import { Calendar } from "@/components/ui/calendar"
 import {
   Popover,
@@ -192,7 +192,7 @@ export const columns: ColumnDef<WorkScheduleRecord>[] = [
     cell: ({ row }) => <div className="text-right">{row.original.fields.fldv3s20240102 || ""}</div>,
   },
   {
-    accessorKey: "fields.fldT720jVmGMXFURUKL", // תאריך (מוסתר או מוצג, לשיקולך)
+    accessorKey: "fields.fldT720jVmGMXFURUKL", // תאריך
     header: ({ column }) => {
       return (
         <Button

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 
-const TABLE_ID = "tblVAQgIYOLfvCZdqgj"
-const FIELD_ID = "fldf2FIOvHqALxULqrs"
+const TABLE_ID = "tblUgEhLuyCwEK2yWG4"
+const FIELD_ID = "fldKkq5oyBm8CwcAIvH" // ID מעודכן לשדה טופס הזמנה
 
 export async function POST(request: Request) {
   try {
@@ -12,9 +12,6 @@ export async function POST(request: Request) {
     if (!file || !recordId) {
       return NextResponse.json({ error: "Missing file or recordId" }, { status: 400 })
     }
-
-    console.log("[v0] Replace file for record:", recordId)
-    console.log("[v0] File name:", file.name)
 
     const apiUrl = process.env.TEABLE_API_URL
     const token = process.env.TEABLE_APP_TOKEN

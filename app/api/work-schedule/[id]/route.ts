@@ -1,7 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { teableClient } from "@/lib/teable-client"
 
-// עדכנתי את המזהה לחדש מהקישור ששלחת
 const TABLE_ID = "tblUgEhLuyCwEK2yWG4"
 
 export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
@@ -9,12 +8,11 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     const recordId = params.id
     const body = await request.json()
 
-    // Convert date format if exists
-    // שים לב: כאן נמצא ה-ID של שדה התאריך. אם הוא השתנה בטבלה החדשה, תצטרך לעדכן אותו גם פה:
-    if (body.fldT720jVmGMXFURUKL && typeof body.fldT720jVmGMXFURUKL === "string") {
-      const dateValue = body.fldT720jVmGMXFURUKL
+    // ID מעודכן לשדה תאריך
+    if (body.fldvNsQbfzMWTc7jakp && typeof body.fldvNsQbfzMWTc7jakp === "string") {
+      const dateValue = body.fldvNsQbfzMWTc7jakp
       if (dateValue.length === 10 && dateValue.includes("-")) {
-        body.fldT720jVmGMXFURUKL = `${dateValue}T00:00:00.000Z`
+        body.fldvNsQbfzMWTc7jakp = `${dateValue}T00:00:00.000Z`
       }
     }
 
@@ -37,9 +35,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const recordId = params.id
-
     await teableClient.deleteRecord(TABLE_ID, recordId)
-
     return NextResponse.json({ success: true })
   } catch (error: any) {
     console.error("[v0] Error deleting record:", error)

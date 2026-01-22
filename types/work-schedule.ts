@@ -2,25 +2,27 @@ export interface WorkScheduleRecord {
   id: string
   fields: {
     [key: string]: any
-    fldT720jVmGMXFURUKL?: string // תאריך
-    fldqFE8SRWBvx3lhI33?: string // התייצבות
-    fldMONOIhazLclMi3WN?: string // תיאור
-    fldiIu1Wm6gC2665QdN?: string // חזור
-    fldjMfOvWEu7HtjSQmv?: boolean // שלח
-    fldoOFQdbIVJthTngkg?: boolean // מאושר
-    fldpPsdEQlpmh7UtZ0G?: number // מחיר לקוח+ מע"מ
-    fldF2pbjDa4PjHtm0bP?: number // מחיר לקוח כולל מע"מ
-    fldcSKtFOjZMDyWHALR?: number // מע"מ
-    fldJrzZk9KXj8bn5Rrl?: number // מחיר נהג+ מע"מ
-    fldhBH2HAFeNviGwRlu?: number // מחיר נהג כולל מע"מ
-    fldWeK6U7xPnkEFCOgx?: string // הערות לנהג
-    fldjh2IDuPaJMXIpbpg?: string // הערות מנהל
-    fldwiQrnnM5roYUmSOd?: string // שם מזמין
-    fldBvclPS0jDWOMtSed?: number // טלפון נייד
-    fldBgekMAmJGCJ74xTH?: number // ת"ז
-    fldKhk7JWpnlquyHQ4l?: any // שם לקוח (link)
-    fldeppUjfYTJgZZi6VI?: any // סוג רכב (link)
-    fldGTTvqQ8lii1wfiS5?: any // שם נהג (link)
+    fldvNsQbfzMWTc7jakp?: string // תאריך
+    fldLbXMREYfC8XVIghj?: string // התייצבות
+    fldA6e7ul57abYgAZDh?: string // תיאור
+    fld56G8M1LyHRRROWiL?: string // חזור
+    fldMv14lt0W7ZBkq1PH?: boolean // שלח
+    fldDOBGATSaTi5TxyHB?: boolean // מאושר
+    fldxXnfHHQWwXY8dlEV?: number // מחיר לקוח+ מע"מ
+    fldT7QLSKmSrjIHarDb?: number // מחיר לקוח כולל מע"מ
+    fldxZmnQzflBG9M0RYq?: number // תאריך ושעה העלאת קובץ (שדה מע"מ המקורי לא ברשימה, הנחתי שזה או זה או חסר)
+    fldSNuxbM8oJfrQ3a9x?: number // מחיר נהג+ מע"מ
+    fldyQIhjdUeQwtHMldD?: number // מחיר נהג כולל מע"מ
+    fldhNoiFEkEgrkxff02?: string // הערות לנהג
+    fldelKu7PLIBmCFfFPJ?: string // הערות מנהל
+    fldkvTaql1bPbifVKLt?: string // שם מזמין
+    fld6NJPsiW8CtRIfnaY?: number // טלפון נייד
+    fldAJPcCFUcDPlSCK1a?: number // ת"ז
+    fldVy6L2DCboXUTkjBX?: any // שם לקוח (link)
+    fldx4hl8FwbxfkqXf0B?: any // סוג רכב (link)
+    flddNPbrzOCdgS36kx5?: any // שם נהג (link)
+    fldqStJV3KKIutTY9hW?: string // מספר רכב
+    fldKkq5oyBm8CwcAIvH?: any // טופס הזמנה (קובץ)
   }
   createdTime?: string
   lastModifiedTime?: string

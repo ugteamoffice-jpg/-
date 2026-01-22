@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { teableClient } from "@/lib/teable-client"
 
-const CUSTOMERS_TABLE_ID = "tbl4dSxUqAf6vsuGCsM"
+const CUSTOMERS_TABLE_ID = "tblmUkwbvrUmxI3q1gd"
 
 export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
   try {

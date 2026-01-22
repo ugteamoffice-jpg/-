@@ -1,37 +1,23 @@
 import { NextResponse } from "next/server"
+import { teableClient } from "@/lib/teable-client"
 
-const TEABLE_API_URL = process.env.TEABLE_API_URL
-const TEABLE_APP_TOKEN = process.env.TEABLE_APP_TOKEN
-const TABLE_ID = "tblRSYoKFHCaDyivO9k"
+const TABLE_ID = "tblbRTqAuL4OMkNnUu7" // אותו ID
 
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   try {
     const body = await request.json()
-    const { fields } = body
-    const recordId = params.id
-
-    const response = await fetch(`${TEABLE_API_URL}/api/table/${TABLE_ID}/record/${recordId}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${TEABLE_APP_TOKEN}`,
-      },
-      body: JSON.stringify({
-        fieldKeyType: "id",
-        typecast: true,
-        record: { fields },
-      }),
-    })
-
-    if (!response.ok) {
-      const errorData = await response.json()
-      throw new Error(errorData.message || "Failed to update vehicle")
-    }
-
-    const data = await response.json()
+    const data = await teableClient.updateRecord(TABLE_ID, params.id, body.fields)
     return NextResponse.json(data)
   } catch (error: any) {
-    console.error("Error updating vehicle:", error)
-    return NextResponse.json({ error: error.message || "Failed to update vehicle" }, { status: 500 })
+    return NextResponse.json({ error: error.message }, { status: 500 })
   }
+}
+
+export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+    try {
+        await teableClient.deleteRecord(TABLE_ID, params.id)
+        return NextResponse.json({ success: true })
+    } catch (error: any) {
+        return NextResponse.json({ error: error.message }, { status: 500 })
+    }
 }

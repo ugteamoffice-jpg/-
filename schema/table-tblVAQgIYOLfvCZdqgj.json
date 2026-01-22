@@ -22,7 +22,7 @@
       "type": "link",
       "options": {
         "relationship": "manyOne",
-        "foreignTableId": "tbl4dSxUqAf6vsuGCsM"
+        "foreignTableId": "tblmUkwbvrUmxI3q1gd" 
       },
       "cellValueType": "string"
     },
@@ -50,7 +50,7 @@
       "type": "link",
       "options": {
         "relationship": "manyOne",
-        "foreignTableId": "tblRSYoKFHCaDyivO9k"
+        "foreignTableId": "tblbRTqAuL4OMkNnUu7"
       },
       "cellValueType": "string"
     },
@@ -60,7 +60,7 @@
       "type": "link",
       "options": {
         "relationship": "oneOne",
-        "foreignTableId": "tblsMGUyHILuKGGASix"
+        "foreignTableId": "tbl39DxszH3whkjzovd"
       },
       "cellValueType": "string"
     },

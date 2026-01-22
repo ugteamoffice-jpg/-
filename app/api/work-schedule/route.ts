@@ -1,7 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { teableClient } from "@/lib/teable-client"
 
-const TABLE_ID = "tblVAQgIYOLfvCZdqgj"
+// עדכנתי את המזהה לחדש מהקישור ששלחת
+const TABLE_ID = "tblUgEhLuyCwEK2yWG4"
 
 export async function GET(request: NextRequest) {
   try {
@@ -53,10 +54,12 @@ export async function POST(request: NextRequest) {
 
       if (value !== "" && value !== null && value !== undefined) {
         // Convert date field to ISO timestamp
+        // שים לב: אם שינית את ה-ID של שדה התאריך בטבלה החדשה, תצטרך לעדכן גם את השורה הזו:
         if (key === "fldT720jVmGMXFURUKL" && typeof value === "string") {
           formattedFields[key] = new Date(value + "T00:00:00.000Z").toISOString()
         }
         // Keep attachment field as-is (array with name and token)
+        // כנ"ל לגבי שדה הקובץ:
         else if (key === "fldf2FIOvHqALxULqrs" && Array.isArray(value)) {
           formattedFields[key] = value
         }

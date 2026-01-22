@@ -1,7 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { teableClient } from "@/lib/teable-client"
 
-const TABLE_ID = "tblVAQgIYOLfvCZdqgj"
+// עדכנתי את המזהה לחדש מהקישור ששלחת
+const TABLE_ID = "tblUgEhLuyCwEK2yWG4"
 
 export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -9,6 +10,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     const body = await request.json()
 
     // Convert date format if exists
+    // שים לב: כאן נמצא ה-ID של שדה התאריך. אם הוא השתנה בטבלה החדשה, תצטרך לעדכן אותו גם פה:
     if (body.fldT720jVmGMXFURUKL && typeof body.fldT720jVmGMXFURUKL === "string") {
       const dateValue = body.fldT720jVmGMXFURUKL
       if (dateValue.length === 10 && dateValue.includes("-")) {

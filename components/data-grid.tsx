@@ -46,27 +46,27 @@ import {
 import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 
-// הגדרת טיפוס הנתונים
+// הגדרת טיפוס הנתונים עם ה-IDs החדשים
 export interface WorkScheduleRecord {
   id: string
   fields: {
     [key: string]: any
-    fldT720jVmGMXFURUKL?: string // תאריך
-    fldqFE8SRWBvx3lhI33?: string // התייצבות
-    fldMONOIhazLclMi3WN?: string // תיאור
-    fldiIu1Wm6gC2665QdN?: string // חזור
-    fldjMfOvWEu7HtjSQmv?: boolean // שלח
-    fldoOFQdbIVJthTngkg?: boolean // מאושר
-    fldpPsdEQlpmh7UtZ0G?: number // מחיר לקוח+ מע"מ
-    fldF2pbjDa4PjHtm0bP?: number // מחיר לקוח כולל מע"מ
-    fldcSKtFOjZMDyWHALR?: number // מע"מ
-    fldJrzZk9KXj8bn5Rrl?: number // מחיר נהג+ מע"מ
-    fldhBH2HAFeNviGwRlu?: number // מחיר נהג כולל מע"מ
-    fldv3s20240101?: number // רווח+ מע"מ
-    fldv3s20240102?: string // הערות לנהג
-    fldGTTvqQ8lii1wfiS5?: any // שם נהג (Link)
-    fldeppUjfYTJgZZi6VI?: any // סוג רכב (Link)
-    fldS0PNTKZseugMVhcA?: any // שם לקוח (Link)
+    fldvNsQbfzMWTc7jakp?: string // תאריך
+    fldLbXMREYfC8XVIghj?: string // התייצבות
+    fldA6e7ul57abYgAZDh?: string // תיאור
+    fld56G8M1LyHRRROWiL?: string // חזור
+    fldMv14lt0W7ZBkq1PH?: boolean // שלח
+    fldDOBGATSaTi5TxyHB?: boolean // מאושר
+    fldxXnfHHQWwXY8dlEV?: number // מחיר לקוח+ מע"מ
+    fldT7QLSKmSrjIHarDb?: number // מחיר לקוח כולל מע"מ
+    fldSNuxbM8oJfrQ3a9x?: number // מחיר נהג+ מע"מ
+    fldyQIhjdUeQwtHMldD?: number // מחיר נהג כולל מע"מ
+    fldT9IZTYlT4gCEnOK3?: number // רווח+ מע"מ
+    fldhNoiFEkEgrkxff02?: string // הערות לנהג
+    flddNPbrzOCdgS36kx5?: any // שם נהג (Link)
+    fldx4hl8FwbxfkqXf0B?: any // סוג רכב (Link)
+    fldVy6L2DCboXUTkjBX?: any // שם לקוח (Link)
+    fldqStJV3KKIutTY9hW?: string // מספר רכב
   }
 }
 
@@ -97,100 +97,110 @@ export const columns: ColumnDef<WorkScheduleRecord>[] = [
     enableHiding: false,
   },
   {
-    accessorKey: "fields.fldjMfOvWEu7HtjSQmv",
+    accessorKey: "fields.fldMv14lt0W7ZBkq1PH", // שלח
     header: "שלח",
     cell: ({ row }) => (
       <div className="flex justify-center">
         <Checkbox 
-          checked={row.original.fields.fldjMfOvWEu7HtjSQmv as boolean} 
+          checked={row.original.fields.fldMv14lt0W7ZBkq1PH as boolean} 
           disabled 
         />
       </div>
     ),
   },
   {
-    accessorKey: "fields.fldoOFQdbIVJthTngkg",
+    accessorKey: "fields.fldDOBGATSaTi5TxyHB", // מאושר
     header: "מאושר",
     cell: ({ row }) => (
       <div className="flex justify-center">
         <Checkbox 
-          checked={row.original.fields.fldoOFQdbIVJthTngkg as boolean} 
+          checked={row.original.fields.fldDOBGATSaTi5TxyHB as boolean} 
           disabled 
         />
       </div>
     ),
   },
   {
-    accessorKey: "fields.fldS0PNTKZseugMVhcA",
+    accessorKey: "fields.fldVy6L2DCboXUTkjBX", // שם לקוח
     header: "שם לקוח",
     cell: ({ row }) => {
-      const val = row.original.fields.fldS0PNTKZseugMVhcA
+      const val = row.original.fields.fldVy6L2DCboXUTkjBX
       if (Array.isArray(val) && val[0]?.title) return <div className="text-right">{val[0].title}</div>
       if (val?.title) return <div className="text-right">{val.title}</div>
       return <div className="text-right text-muted-foreground">-</div>
     },
   },
   {
-    accessorKey: "fields.fldqFE8SRWBvx3lhI33",
+    accessorKey: "fields.fldLbXMREYfC8XVIghj", // התייצבות
     header: "התייצבות",
-    cell: ({ row }) => <div className="text-right">{row.original.fields.fldqFE8SRWBvx3lhI33 || ""}</div>,
+    cell: ({ row }) => <div className="text-right">{row.original.fields.fldLbXMREYfC8XVIghj || ""}</div>,
   },
   {
-    accessorKey: "fields.fldMONOIhazLclMi3WN",
+    accessorKey: "fields.fldA6e7ul57abYgAZDh", // תיאור
     header: "תיאור",
     cell: ({ row }) => (
-      <div className="text-right max-w-[200px] truncate" title={row.original.fields.fldMONOIhazLclMi3WN}>
-        {row.original.fields.fldMONOIhazLclMi3WN || ""}
+      <div className="text-right max-w-[200px] truncate" title={row.original.fields.fldA6e7ul57abYgAZDh}>
+        {row.original.fields.fldA6e7ul57abYgAZDh || ""}
       </div>
     ),
   },
   {
-    accessorKey: "fields.fldiIu1Wm6gC2665QdN",
+    accessorKey: "fields.fld56G8M1LyHRRROWiL", // חזור
     header: "חזור",
-    cell: ({ row }) => <div className="text-right">{row.original.fields.fldiIu1Wm6gC2665QdN || ""}</div>,
+    cell: ({ row }) => <div className="text-right">{row.original.fields.fld56G8M1LyHRRROWiL || ""}</div>,
   },
   {
-    accessorKey: "fields.fldeppUjfYTJgZZi6VI",
+    accessorKey: "fields.fldx4hl8FwbxfkqXf0B", // סוג רכב
     header: "סוג רכב",
     cell: ({ row }) => {
-      const val = row.original.fields.fldeppUjfYTJgZZi6VI
+      const val = row.original.fields.fldx4hl8FwbxfkqXf0B
       if (Array.isArray(val) && val[0]?.title) return <div className="text-right">{val[0].title}</div>
       if (val?.title) return <div className="text-right">{val.title}</div>
       return <div className="text-right text-muted-foreground">-</div>
     },
   },
   {
-    accessorKey: "fields.fldGTTvqQ8lii1wfiS5",
+    accessorKey: "fields.flddNPbrzOCdgS36kx5", // שם נהג
     header: "שם נהג",
     cell: ({ row }) => {
-      const val = row.original.fields.fldGTTvqQ8lii1wfiS5
+      const val = row.original.fields.flddNPbrzOCdgS36kx5
       if (Array.isArray(val) && val[0]?.title) return <div className="text-right">{val[0].title}</div>
       if (val?.title) return <div className="text-right">{val.title}</div>
       return <div className="text-right text-muted-foreground">-</div>
     },
   },
   {
-    accessorKey: "fields.fldpPsdEQlpmh7UtZ0G",
+    accessorKey: "fields.fldxXnfHHQWwXY8dlEV", // מחיר לקוח+ מע"מ
     header: 'מחיר לקוח+ מע"מ',
-    cell: ({ row }) => <div className="text-right">{row.original.fields.fldpPsdEQlpmh7UtZ0G}</div>,
+    cell: ({ row }) => <div className="text-right">{row.original.fields.fldxXnfHHQWwXY8dlEV}</div>,
   },
   {
-    accessorKey: "fields.fldJrzZk9KXj8bn5Rrl",
+    accessorKey: "fields.fldT7QLSKmSrjIHarDb", // מחיר לקוח כולל מע"מ
+    header: 'מחיר לקוח כולל מע"מ',
+    cell: ({ row }) => <div className="text-right">{row.original.fields.fldT7QLSKmSrjIHarDb}</div>,
+  },
+  {
+    accessorKey: "fields.fldSNuxbM8oJfrQ3a9x", // מחיר נהג+ מע"מ
     header: 'מחיר נהג+ מע"מ',
-    cell: ({ row }) => <div className="text-right">{row.original.fields.fldJrzZk9KXj8bn5Rrl}</div>,
+    cell: ({ row }) => <div className="text-right">{row.original.fields.fldSNuxbM8oJfrQ3a9x}</div>,
   },
   {
-    accessorKey: "fields.fldv3s20240101",
+    accessorKey: "fields.fldyQIhjdUeQwtHMldD", // מחיר נהג כולל מע"מ
+    header: 'מחיר נהג כולל מע"מ',
+    cell: ({ row }) => <div className="text-right">{row.original.fields.fldyQIhjdUeQwtHMldD}</div>,
+  },
+  {
+    accessorKey: "fields.fldT9IZTYlT4gCEnOK3", // רווח+ מע"מ
     header: 'רווח+ מע"מ',
-    cell: ({ row }) => <div className="text-right">{row.original.fields.fldv3s20240101}</div>,
+    cell: ({ row }) => <div className="text-right">{row.original.fields.fldT9IZTYlT4gCEnOK3}</div>,
   },
   {
-    accessorKey: "fields.fldv3s20240102",
+    accessorKey: "fields.fldhNoiFEkEgrkxff02", // הערות לנהג
     header: "הערות לנהג",
-    cell: ({ row }) => <div className="text-right">{row.original.fields.fldv3s20240102 || ""}</div>,
+    cell: ({ row }) => <div className="text-right">{row.original.fields.fldhNoiFEkEgrkxff02 || ""}</div>,
   },
   {
-    accessorKey: "fields.fldT720jVmGMXFURUKL",
+    accessorKey: "fields.fldvNsQbfzMWTc7jakp", // תאריך
     header: ({ column }) => {
       return (
         <Button
@@ -203,7 +213,7 @@ export const columns: ColumnDef<WorkScheduleRecord>[] = [
       )
     },
     cell: ({ row }) => {
-      const date = row.original.fields.fldT720jVmGMXFURUKL
+      const date = row.original.fields.fldvNsQbfzMWTc7jakp
       if (!date) return <div className="text-right font-medium">-</div>
       return <div className="text-right font-medium">{format(new Date(date), "dd/MM/yyyy")}</div>
     },
@@ -222,7 +232,7 @@ export function DataGrid({ schema }: { schema: any }) {
 
   const fetchData = async () => {
     try {
-      const response = await fetch('/api/table/tblVAQgIYOLfvCZdqgj')
+      const response = await fetch('/api/work-schedule')
       const json = await response.json()
       if (json.records) {
         setData(json.records)
@@ -236,25 +246,22 @@ export function DataGrid({ schema }: { schema: any }) {
     fetchData()
   }, [])
 
-  // מחיקת שורות מסומנות - הפיצ'ר החסר!
   const handleDeleteSelected = async () => {
     const selectedIds = Object.keys(rowSelection)
     if (selectedIds.length === 0) return
 
     if (!confirm("האם אתה בטוח שברצונך למחוק את הרשומות המסומנות?")) return
 
-    // שליפת ה-IDs האמיתיים של הרשומות
     const recordsToDelete = table.getFilteredSelectedRowModel().rows.map(row => row.original.id)
 
     try {
-      // מחיקה בלולאה (פשוט וקל)
       for (const id of recordsToDelete) {
         await fetch(`/api/work-schedule/${id}`, { method: "DELETE" })
       }
       
       toast({ title: "נמחק בהצלחה", description: `${recordsToDelete.length} רשומות נמחקו.` })
-      setRowSelection({}) // איפוס בחירה
-      fetchData() // רענון
+      setRowSelection({})
+      fetchData()
     } catch (error) {
       toast({ title: "שגיאה", description: "ארעה שגיאה במחיקה.", variant: "destructive" })
     }
@@ -266,7 +273,7 @@ export function DataGrid({ schema }: { schema: any }) {
     if (dateFilter) {
       const dateStr = format(dateFilter, "yyyy-MM-dd")
       filtered = filtered.filter(item => {
-        const itemDate = item.fields.fldT720jVmGMXFURUKL
+        const itemDate = item.fields.fldvNsQbfzMWTc7jakp // ID מעודכן לתאריך
         if (!itemDate) return false
         return itemDate.startsWith(dateStr)
       })
@@ -309,7 +316,6 @@ export function DataGrid({ schema }: { schema: any }) {
   return (
     <div className="w-full space-y-4 p-4" dir="rtl">
       <div className="flex items-center justify-between gap-4">
-        {/* חיפוש */}
         <div className="flex items-center gap-2 flex-1 max-w-sm">
            <Search className="w-4 h-4 text-muted-foreground" />
            <Input
@@ -321,7 +327,6 @@ export function DataGrid({ schema }: { schema: any }) {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* פח אשפה - מופיע רק כשבוחרים שורות */}
           {Object.keys(rowSelection).length > 0 && (
             <Button variant="destructive" size="sm" onClick={handleDeleteSelected}>
               <Trash2 className="h-4 w-4 ml-2" />

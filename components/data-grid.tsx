@@ -12,6 +12,7 @@ import {
   getSortedRowModel,
   useReactTable,
   ColumnOrderState,
+  ColumnSizingState,
 } from "@tanstack/react-table"
 import { ArrowUpDown, Calendar as CalendarIcon, Trash2 } from "lucide-react"
 import { format } from "date-fns"
@@ -73,6 +74,7 @@ const renderLinkField = (value: any) => {
   return String(value)
 }
 
+// הגדרת עמודות עם גדלים התחלתיים
 export const columns: ColumnDef<WorkScheduleRecord>[] = [
   {
     id: "select",
@@ -103,6 +105,7 @@ export const columns: ColumnDef<WorkScheduleRecord>[] = [
   },
   {
     accessorKey: "fields.fldMv14lt0W7ZBkq1PH",
+    id: "sent",
     header: "שלח",
     cell: ({ row }) => (
       <div className="flex justify-center">
@@ -114,6 +117,7 @@ export const columns: ColumnDef<WorkScheduleRecord>[] = [
   },
   {
     accessorKey: "fields.fldDOBGATSaTi5TxyHB",
+    id: "approved",
     header: "מאושר",
     cell: ({ row }) => (
       <div className="flex justify-center">
@@ -125,6 +129,7 @@ export const columns: ColumnDef<WorkScheduleRecord>[] = [
   },
   {
     accessorKey: "fields.fldVy6L2DCboXUTkjBX",
+    id: "customer",
     header: "שם לקוח",
     cell: ({ row }) => <div className="text-right truncate">{renderLinkField(row.original.fields.fldVy6L2DCboXUTkjBX)}</div>,
     size: 150,
@@ -132,6 +137,7 @@ export const columns: ColumnDef<WorkScheduleRecord>[] = [
   },
   {
     accessorKey: "fields.fldLbXMREYfC8XVIghj",
+    id: "pickup",
     header: "התייצבות",
     cell: ({ row }) => <div className="text-right truncate">{row.original.fields.fldLbXMREYfC8XVIghj || ""}</div>,
     size: 100,
@@ -139,6 +145,7 @@ export const columns: ColumnDef<WorkScheduleRecord>[] = [
   },
   {
     accessorKey: "fields.fldA6e7ul57abYgAZDh",
+    id: "description",
     header: "תיאור",
     cell: ({ row }) => (
       <div className="text-right truncate" title={row.original.fields.fldA6e7ul57abYgAZDh}>
@@ -150,6 +157,7 @@ export const columns: ColumnDef<WorkScheduleRecord>[] = [
   },
   {
     accessorKey: "fields.fld56G8M1LyHRRROWiL",
+    id: "dropoff",
     header: "חזור",
     cell: ({ row }) => <div className="text-right truncate">{row.original.fields.fld56G8M1LyHRRROWiL || ""}</div>,
     size: 100,
@@ -157,6 +165,7 @@ export const columns: ColumnDef<WorkScheduleRecord>[] = [
   },
   {
     accessorKey: "fields.fldx4hl8FwbxfkqXf0B",
+    id: "vehicle",
     header: "סוג רכב",
     cell: ({ row }) => <div className="text-right truncate">{renderLinkField(row.original.fields.fldx4hl8FwbxfkqXf0B)}</div>,
     size: 120,
@@ -164,6 +173,7 @@ export const columns: ColumnDef<WorkScheduleRecord>[] = [
   },
   {
     accessorKey: "fields.flddNPbrzOCdgS36kx5",
+    id: "driver",
     header: "שם נהג",
     cell: ({ row }) => <div className="text-right font-medium truncate">{renderLinkField(row.original.fields.flddNPbrzOCdgS36kx5)}</div>,
     size: 120,
@@ -171,6 +181,7 @@ export const columns: ColumnDef<WorkScheduleRecord>[] = [
   },
   {
     accessorKey: "fields.fldxXnfHHQWwXY8dlEV",
+    id: "price_client_plus_vat",
     header: 'מחיר לקוח+ מע"מ',
     cell: ({ row }) => <div className="text-right">{row.original.fields.fldxXnfHHQWwXY8dlEV}</div>,
     size: 140,
@@ -178,6 +189,7 @@ export const columns: ColumnDef<WorkScheduleRecord>[] = [
   },
   {
     accessorKey: "fields.fldT7QLSKmSrjIHarDb",
+    id: "price_client_full",
     header: 'מחיר לקוח כולל מע"מ',
     cell: ({ row }) => <div className="text-right">{row.original.fields.fldT7QLSKmSrjIHarDb}</div>,
     size: 160,
@@ -185,6 +197,7 @@ export const columns: ColumnDef<WorkScheduleRecord>[] = [
   },
   {
     accessorKey: "fields.fldSNuxbM8oJfrQ3a9x",
+    id: "price_driver_plus_vat",
     header: 'מחיר נהג+ מע"מ',
     cell: ({ row }) => <div className="text-right">{row.original.fields.fldSNuxbM8oJfrQ3a9x}</div>,
     size: 130,
@@ -192,6 +205,7 @@ export const columns: ColumnDef<WorkScheduleRecord>[] = [
   },
   {
     accessorKey: "fields.fldyQIhjdUeQwtHMldD",
+    id: "price_driver_full",
     header: 'מחיר נהג כולל מע"מ',
     cell: ({ row }) => <div className="text-right">{row.original.fields.fldyQIhjdUeQwtHMldD}</div>,
     size: 150,
@@ -199,6 +213,7 @@ export const columns: ColumnDef<WorkScheduleRecord>[] = [
   },
   {
     accessorKey: "fields.fldT9IZTYlT4gCEnOK3",
+    id: "profit",
     header: 'רווח+ מע"מ',
     cell: ({ row }) => <div className="text-right">{row.original.fields.fldT9IZTYlT4gCEnOK3}</div>,
     size: 100,
@@ -206,6 +221,7 @@ export const columns: ColumnDef<WorkScheduleRecord>[] = [
   },
   {
     accessorKey: "fields.fldhNoiFEkEgrkxff02",
+    id: "notes_driver",
     header: "הערות לנהג",
     cell: ({ row }) => <div className="text-right truncate">{row.original.fields.fldhNoiFEkEgrkxff02 || ""}</div>,
     size: 150,
@@ -222,17 +238,19 @@ export function DataGrid({ schema }: { schema: any }) {
   const [globalFilter, setGlobalFilter] = React.useState("")
   const [dateFilter, setDateFilter] = React.useState<Date>(new Date())
   
-  // States for persistence
+  // States for persistence and interactions
   const [columnOrder, setColumnOrder] = React.useState<ColumnOrderState>([])
-  const [columnSizing, setColumnSizing] = React.useState({})
+  const [columnSizing, setColumnSizing] = React.useState<ColumnSizingState>({})
+  
+  // משתנה קריטי: מונע גרירת עמודות בזמן שינוי גודל
+  const [isResizing, setIsResizing] = React.useState(false)
 
   const { toast } = useToast()
   
   const [editingRecord, setEditingRecord] = React.useState<WorkScheduleRecord | null>(null)
   const [isEditOpen, setIsEditOpen] = React.useState(false)
   const [isCalendarOpen, setIsCalendarOpen] = React.useState(false)
-  const [resizingColumnId, setResizingColumnId] = React.useState<string | null>(null)
-
+  
   const fetchData = async () => {
     try {
       const response = await fetch('/api/work-schedule?take=1000') 
@@ -249,24 +267,25 @@ export function DataGrid({ schema }: { schema: any }) {
     fetchData()
   }, [])
 
-  // 1. טעינת הגדרות שמורות מהזיכרון המקומי בעת טעינת הדף
+  // טעינת הגדרות (סידור ורוחב)
   React.useEffect(() => {
     const savedSettings = localStorage.getItem("workScheduleGridSettings")
     if (savedSettings) {
       try {
         const parsed = JSON.parse(savedSettings)
-        if (parsed.columnOrder) setColumnOrder(parsed.columnOrder)
+        if (parsed.columnOrder && parsed.columnOrder.length > 0) setColumnOrder(parsed.columnOrder)
+        else setColumnOrder(columns.map(c => c.id as string)) // Fallback if empty
+        
         if (parsed.columnSizing) setColumnSizing(parsed.columnSizing)
       } catch (e) {
-        console.error("Failed to parse saved settings", e)
+        setColumnOrder(columns.map(c => c.id as string))
       }
     } else {
-      // אם אין הגדרות שמורות, נשתמש בברירת המחדל
       setColumnOrder(columns.map(c => c.id as string))
     }
   }, [])
 
-  // 2. שמירת הגדרות לזיכרון המקומי בכל שינוי
+  // שמירת הגדרות
   React.useEffect(() => {
     if (columnOrder.length > 0) {
       const settingsToSave = {
@@ -345,23 +364,24 @@ export function DataGrid({ schema }: { schema: any }) {
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
     onColumnOrderChange: setColumnOrder,
-    onColumnSizingChange: setColumnSizing, // חיבור פונקציית שמירת הגודל
+    onColumnSizingChange: setColumnSizing,
     state: {
       sorting,
       columnFilters,
       columnVisibility,
       rowSelection,
       columnOrder,
-      columnSizing, // חיבור הסטייט
+      columnSizing,
     },
   })
 
+  // פונקציית הזזה שמעדכנת את הסדר
   const moveColumn = (draggedId: string, targetId: string) => {
     const newOrder = [...columnOrder]
     const draggedIndex = newOrder.indexOf(draggedId)
     const targetIndex = newOrder.indexOf(targetId)
     
-    if (draggedIndex !== -1 && targetIndex !== -1) {
+    if (draggedIndex !== -1 && targetIndex !== -1 && draggedIndex !== targetIndex) {
       newOrder.splice(draggedIndex, 1)
       newOrder.splice(targetIndex, 0, draggedId)
       setColumnOrder(newOrder)
@@ -373,7 +393,7 @@ export function DataGrid({ schema }: { schema: any }) {
       {/* שורת הכותרת */}
       <div className="flex items-center justify-between gap-4">
         
-        {/* צד ימין: תאריך -> נסיעה חדשה -> חיפוש */}
+        {/* צד ימין */}
         <div className="flex items-center gap-2">
           
           <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
@@ -435,55 +455,69 @@ export function DataGrid({ schema }: { schema: any }) {
                 {headerGroup.headers.map((header) => (
                   <TableHead 
                     key={header.id} 
-                    className="text-right relative border-l select-none group" 
+                    className={cn(
+                      "text-right relative border-l select-none group transition-colors",
+                      // שינוי צבע קטן כשגוררים מעל עמודה
+                      "hover:bg-muted/50" 
+                    )}
                     style={{ width: header.getSize() }}
-                    draggable={!header.column.getIsResizing()}
+                    
+                    // מנגנון הזזת עמודות - מושבת בזמן שינוי גודל!
+                    draggable={!isResizing} 
+                    
                     onDragStart={(e) => {
-                       e.dataTransfer.setData("text/plain", header.id)
+                       e.dataTransfer.setData("text/plain", header.column.id) // שימוש ב-column.id
                     }}
                     onDragOver={(e) => {
-                      e.preventDefault()
+                      e.preventDefault() // חובה כדי לאפשר Drop
                     }}
                     onDrop={(e) => {
                       e.preventDefault()
                       const draggedId = e.dataTransfer.getData("text/plain")
-                      const targetId = header.id
-                      if (draggedId !== targetId) {
+                      const targetId = header.column.id
+                      if (draggedId && targetId) {
                          moveColumn(draggedId, targetId)
                       }
                     }}
                   >
                     {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                     
+                    {/* ידית גרירה לשינוי גודל */}
                     <div
                       onMouseDown={(e) => {
                         e.stopPropagation();
                         e.preventDefault();
-                        const startX = e.clientX;
-                        const startWidth = header.column.getSize();
-                        setResizingColumnId(header.id);
+                        setIsResizing(true); // השבתת גרירת עמודות
 
+                        const startX = e.clientX;
+                        const startWidth = header.getSize();
+                        
                         const onMouseMove = (moveEvent: MouseEvent) => {
                           const currentX = moveEvent.clientX;
-                          // גרירה שמאלה = הגדלת רוחב
+                          // RTL: גרירה שמאלה = הגדלת רוחב
                           const delta = startX - currentX; 
                           const minSize = header.column.columnDef.minSize || 50;
                           const newWidth = Math.max(minSize, startWidth + delta); 
-                          header.column.setSize(newWidth);
+                          
+                          // עדכון State ישיר של הרוחב
+                          setColumnSizing(old => ({
+                             ...old,
+                             [header.id]: newWidth
+                          }))
                         };
 
                         const onMouseUp = () => {
+                          setIsResizing(false); // החזרת גרירת עמודות
                           document.removeEventListener('mousemove', onMouseMove);
                           document.removeEventListener('mouseup', onMouseUp);
-                          setResizingColumnId(null);
                         };
 
                         document.addEventListener('mousemove', onMouseMove);
                         document.addEventListener('mouseup', onMouseUp);
                       }}
                       className={cn(
-                        "absolute left-0 top-0 h-full w-2 cursor-col-resize hover:bg-primary/30 touch-none select-none z-20 opacity-0 group-hover:opacity-100 transition-opacity",
-                        resizingColumnId === header.id && "bg-primary w-1 opacity-100"
+                        "absolute left-0 top-0 h-full w-4 cursor-col-resize hover:bg-primary/30 touch-none select-none z-20 opacity-0 group-hover:opacity-100 transition-opacity",
+                        // וידוא שהידית נגישה תמיד
                       )}
                     />
                   </TableHead>

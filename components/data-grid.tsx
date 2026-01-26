@@ -14,7 +14,7 @@ import {
   ColumnOrderState,
   ColumnSizingState,
 } from "@tanstack/react-table"
-import { ArrowUpDown, Calendar as CalendarIcon, Trash2 } from "lucide-react"
+import { ArrowUpDown, Calendar as CalendarIcon, Trash2, GripVertical } from "lucide-react" // GripVertical added
 import { format } from "date-fns"
 import { he } from "date-fns/locale"
 
@@ -238,13 +238,11 @@ export function DataGrid({ schema }: { schema: any }) {
   const [globalFilter, setGlobalFilter] = React.useState("")
   const [dateFilter, setDateFilter] = React.useState<Date>(new Date())
   
-  // States for persistence and interactions
   const [columnOrder, setColumnOrder] = React.useState<ColumnOrderState>([])
   const [columnSizing, setColumnSizing] = React.useState<ColumnSizingState>({})
   
-  // State for drag & drop
   const [isResizing, setIsResizing] = React.useState(false)
-  const [draggingColumnId, setDraggingColumnId] = React.useState<string | null>(null) // זיהוי עמודה נגררת
+  const [draggedColumnId, setDraggedColumnId] = React.useState<string | null>(null) // State for live swapping
 
   const { toast } = useToast()
   
@@ -268,7 +266,6 @@ export function DataGrid({ schema }: { schema: any }) {
     fetchData()
   }, [])
 
-  // טעינת הגדרות שמורות
   React.useEffect(() => {
     const savedSettings = localStorage.getItem("workScheduleGridSettings")
     if (savedSettings) {
@@ -286,7 +283,6 @@ export function DataGrid({ schema }: { schema: any }) {
     }
   }, [])
 
-  // שמירת הגדרות
   React.useEffect(() => {
     if (columnOrder.length > 0) {
       const settingsToSave = {
@@ -376,22 +372,20 @@ export function DataGrid({ schema }: { schema: any }) {
     },
   })
 
-  // פונקציית הזזה שמסתמכת על State ולא על Event Data
-  const moveColumn = (draggedId: string, targetId: string) => {
-    // הגנה מפני מצב שבו הסדר טרם נטען
-    let currentOrder = [...columnOrder];
-    if (currentOrder.length === 0) {
-        currentOrder = columns.map(c => c.id as string);
-    }
-
-    const draggedIndex = currentOrder.indexOf(draggedId)
-    const targetIndex = currentOrder.indexOf(targetId)
-    
-    if (draggedIndex !== -1 && targetIndex !== -1 && draggedIndex !== targetIndex) {
-      currentOrder.splice(draggedIndex, 1)
-      currentOrder.splice(targetIndex, 0, draggedId)
-      setColumnOrder(currentOrder)
-    }
+  // פונקציית החלפה מיידית
+  const swapColumns = (sourceId: string, targetId: string) => {
+    setColumnOrder(oldOrder => {
+       const newOrder = [...oldOrder]
+       const sourceIndex = newOrder.indexOf(sourceId)
+       const targetIndex = newOrder.indexOf(targetId)
+       
+       if (sourceIndex !== -1 && targetIndex !== -1 && sourceIndex !== targetIndex) {
+         newOrder.splice(sourceIndex, 1)
+         newOrder.splice(targetIndex, 0, sourceId)
+         return newOrder
+       }
+       return oldOrder
+    })
   }
 
   return (
@@ -463,44 +457,48 @@ export function DataGrid({ schema }: { schema: any }) {
                     key={header.id} 
                     colSpan={header.colSpan}
                     className={cn(
-                      "text-right relative border-l select-none group transition-colors",
-                      !isResizing && header.column.id !== "select" && "cursor-grab active:cursor-grabbing",
-                      draggingColumnId === header.column.id && "opacity-50 bg-muted border-dashed border-2 border-primary"
+                      "text-right relative border-l select-none group transition-all duration-200",
+                      // סימון ויזואלי לעמודה שנגררת כרגע
+                      draggedColumnId === header.column.id ? "opacity-30 bg-primary/20" : "hover:bg-muted/30"
                     )}
                     style={{ width: header.getSize() }}
                     
-                    // === גרירת עמודות: השיטה הבטוחה ===
-                    draggable={!isResizing && header.column.id !== "select"} 
-                    onDragStart={(e) => {
-                       // שמירה ב-State של React - הכי אמין
-                       setDraggingColumnId(header.column.id)
-                       e.dataTransfer.effectAllowed = "move"
-                       // שמירה גם בדפדפן כגיבוי
-                       e.dataTransfer.setData("text/plain", header.column.id)
-                       
-                       const img = new Image();
-                       img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-                       e.dataTransfer.setDragImage(img, 0, 0);
-                    }}
+                    // אירועי גרירה על כל התא
                     onDragOver={(e) => {
-                       e.preventDefault() // חובה לאפשר Drop
-                    }}
-                    onDrop={(e) => {
-                       e.preventDefault()
-                       
-                       // כאן התיקון: שימוש ב-draggingColumnId מה-State
-                       const draggedId = draggingColumnId;
-                       const targetId = header.column.id
-                       
-                       // איפוס
-                       setDraggingColumnId(null)
-
-                       if (draggedId && targetId && draggedId !== targetId && targetId !== "select" && draggedId !== "select") {
-                          moveColumn(draggedId, targetId)
+                       e.preventDefault() // חובה כדי לאפשר Drop
+                       // החלפה חיה! Live Swap
+                       if (draggedColumnId && draggedColumnId !== header.column.id && header.column.id !== "select") {
+                          swapColumns(draggedColumnId, header.column.id)
                        }
                     }}
                   >
-                    {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                    <div className="flex items-center justify-between gap-2 h-full">
+                        {/* התוכן של הכותרת */}
+                        <div className="flex-1 truncate">
+                           {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                        </div>
+
+                        {/* ידית גרירה (Grip) - רק כאן מותר לגרור */}
+                        {!isResizing && header.column.id !== "select" && (
+                           <div 
+                             className="cursor-grab active:cursor-grabbing p-1 hover:bg-muted rounded text-muted-foreground/50 hover:text-foreground"
+                             draggable
+                             onDragStart={(e) => {
+                                setDraggedColumnId(header.column.id)
+                                e.dataTransfer.effectAllowed = "move"
+                                // הסתרת הצללית של הגרירה כדי שיראה נקי
+                                const img = new Image();
+                                img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+                                e.dataTransfer.setDragImage(img, 0, 0);
+                             }}
+                             onDragEnd={() => {
+                                setDraggedColumnId(null)
+                             }}
+                           >
+                              <GripVertical className="h-4 w-4" />
+                           </div>
+                        )}
+                    </div>
                     
                     {/* ידית שינוי גודל */}
                     {header.column.getCanResize() && (
@@ -515,7 +513,7 @@ export function DataGrid({ schema }: { schema: any }) {
                           
                           const onMouseMove = (moveEvent: MouseEvent) => {
                             const currentX = moveEvent.clientX;
-                            const delta = startX - currentX; 
+                            const delta = startX - currentX; // RTL
                             const minSize = header.column.columnDef.minSize || 50;
                             const newWidth = Math.max(minSize, startWidth + delta); 
                             

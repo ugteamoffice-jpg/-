@@ -47,6 +47,7 @@ import {
 } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
+// השימוש ברכיב שיצרת
 import { ScrollArea } from "@/components/ui/scroll-area"
 
 // --- ממשקים ---
@@ -84,7 +85,7 @@ const renderLinkField = (value: any) => {
   return String(value)
 }
 
-// הגדרת העמודות (הוספתי ID מפורש לכל עמודה כדי שיהיה קל לזהות)
+// הגדרת העמודות
 export const columns: ColumnDef<WorkScheduleRecord>[] = [
   {
     id: "select",
@@ -255,14 +256,12 @@ function ColumnReorderDialog({
   const [internalOrder, setInternalOrder] = React.useState<string[]>([])
   const [draggedItem, setDraggedItem] = React.useState<string | null>(null)
 
-  // סנכרון עם המצב הקיים בפתיחה
   React.useEffect(() => {
     if (open) {
       setInternalOrder(columnOrder)
     }
   }, [open, columnOrder])
 
-  // פונקציית עזר למציאת שם העמודה
   const getColumnName = (id: string) => {
     if (id === 'select') return 'בחירה'
     const col = columns.find(c => c.id === id)
@@ -272,7 +271,7 @@ function ColumnReorderDialog({
   const handleDragStart = (e: React.DragEvent, id: string) => {
     setDraggedItem(id)
     e.dataTransfer.effectAllowed = "move"
-    // יצירת אלמנט גרירה "רוח רפאים" כדי שלא יסתיר
+    // יצירת אלמנט גרירה "רוח רפאים"
     const ghost = document.createElement('div')
     ghost.style.opacity = '0'
     document.body.appendChild(ghost)
@@ -310,10 +309,10 @@ function ColumnReorderDialog({
           </DialogDescription>
         </DialogHeader>
         
+        {/* שימוש ב-ScrollArea שיצרת */}
         <ScrollArea className="h-[400px] pr-4 border rounded-md p-2">
           <div className="space-y-2">
             {internalOrder.map((colId) => {
-              // לא מציגים את עמודת הבחירה לסידור
               if (colId === 'select') return null;
               
               return (
@@ -420,11 +419,9 @@ export function DataGrid({ schema }: { schema: any }) {
 
   // פונקציית שמירה מהדיאלוג
   const handleOrderSave = (newOrder: string[]) => {
-    // מוודאים ש 'select' תמיד נשארת ראשונה
     const finalOrder = ['select', ...newOrder.filter(id => id !== 'select')]
     setColumnOrder(finalOrder)
     
-    // שמירה מיידית
     localStorage.setItem("workScheduleGridSettings", JSON.stringify({
       columnOrder: finalOrder,
       columnSizing
@@ -547,9 +544,10 @@ export function DataGrid({ schema }: { schema: any }) {
 
           <NewRideDialog onRideCreated={fetchData} />
 
-          {/* כפתור סדר עמודות החדש */}
-          <Button variant="outline" size="icon" onClick={() => setIsReorderOpen(true)} title="סדר עמודות">
-            <Settings2 className="h-4 w-4" />
+          {/* כפתור סדר עמודות עם טקסט */}
+          <Button variant="outline" onClick={() => setIsReorderOpen(true)}>
+            <Settings2 className="h-4 w-4 ml-2" />
+            סדר עמודות
           </Button>
 
           <div className="flex items-center w-full max-w-sm">
@@ -657,6 +655,7 @@ export function DataGrid({ schema }: { schema: any }) {
         }}
       />
 
+      {/* הדיאלוג החדש */}
       <ColumnReorderDialog 
         open={isReorderOpen} 
         onOpenChange={setIsReorderOpen}

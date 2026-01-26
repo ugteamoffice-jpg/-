@@ -583,7 +583,8 @@ export function DataGrid({ schema }: { schema: any }) {
                 locale={he}
                 dir="rtl"
                 initialFocus
-                showOutsideDays={false} // תיקון: לא מציג ימים מחודש אחר
+                showOutsideDays={true} // ימים אפורים
+                fixedWeeks // גובה קבוע לחלון הלוח שנה
               />
               <div className="border-t p-2">
                 <Button variant="ghost" className="w-full justify-center text-sm" onClick={handleTodayClick}>
@@ -696,10 +697,16 @@ export function DataGrid({ schema }: { schema: any }) {
                    return <TableCell key={col.id} className="p-0 border-l border-b-0" />
                 })}
             </TableRow>
+            
+            {/* שורת דמה - Dummy Row לשמירת מקום בסוף הגלילה */}
+            <TableRow className="h-10 bg-transparent border-none hover:bg-transparent">
+               <TableCell colSpan={columns.length} className="p-0" />
+            </TableRow>
+
           </TableBody>
 
-          {/* שורת סיכום דביקה בתחתית עם רקע לבן */}
-          <tfoot className="sticky bottom-0 bg-background font-bold border-t z-20 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
+          {/* שורת סיכום דביקה בתחתית עם רקע לבן וקו עליון מודגש */}
+          <tfoot className="sticky bottom-0 bg-background font-bold border-t-2 z-20 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
              {table.getFooterGroups().map((footerGroup) => (
                 <tr key={footerGroup.id}>
                   {footerGroup.headers.map((header) => {

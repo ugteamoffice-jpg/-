@@ -74,6 +74,7 @@ const renderLinkField = (value: any) => {
   return String(value)
 }
 
+// הגדרת עמודות
 export const columns: ColumnDef<WorkScheduleRecord>[] = [
   {
     id: "select",
@@ -101,7 +102,7 @@ export const columns: ColumnDef<WorkScheduleRecord>[] = [
     enableHiding: false,
     size: 50,
     minSize: 50,
-    enableResizing: false, // ביטול שינוי גודל לעמודת בחירה
+    enableResizing: false, 
   },
   {
     accessorKey: "fields.fldMv14lt0W7ZBkq1PH",
@@ -238,11 +239,13 @@ export function DataGrid({ schema }: { schema: any }) {
   const [globalFilter, setGlobalFilter] = React.useState("")
   const [dateFilter, setDateFilter] = React.useState<Date>(new Date())
   
+  // ניהול סדר עמודות וגדלים
   const [columnOrder, setColumnOrder] = React.useState<ColumnOrderState>([])
   const [columnSizing, setColumnSizing] = React.useState<ColumnSizingState>({})
   
+  // משתנים למצב גרירה
   const [isResizing, setIsResizing] = React.useState(false)
-  const [draggedColumnId, setDraggedColumnId] = React.useState<string | null>(null) // זיהוי עמודה נגררת
+  const [draggingColumnId, setDraggingColumnId] = React.useState<string | null>(null)
 
   const { toast } = useToast()
   
@@ -266,6 +269,7 @@ export function DataGrid({ schema }: { schema: any }) {
     fetchData()
   }, [])
 
+  // טעינת הגדרות שמורות
   React.useEffect(() => {
     const savedSettings = localStorage.getItem("workScheduleGridSettings")
     if (savedSettings) {
@@ -283,6 +287,7 @@ export function DataGrid({ schema }: { schema: any }) {
     }
   }, [])
 
+  // שמירת הגדרות
   React.useEffect(() => {
     if (columnOrder.length > 0) {
       const settingsToSave = {
@@ -372,19 +377,6 @@ export function DataGrid({ schema }: { schema: any }) {
     },
   })
 
-  // פונקציית הזזה
-  const moveColumn = (draggedId: string, targetId: string) => {
-    const newOrder = [...columnOrder]
-    const draggedIndex = newOrder.indexOf(draggedId)
-    const targetIndex = newOrder.indexOf(targetId)
-    
-    if (draggedIndex !== -1 && targetIndex !== -1 && draggedIndex !== targetIndex) {
-      newOrder.splice(draggedIndex, 1)
-      newOrder.splice(targetIndex, 0, draggedId)
-      setColumnOrder(newOrder)
-    }
-  }
-
   return (
     <div className="w-full h-full flex flex-col space-y-4 p-4" dir="rtl">
       {/* שורת הכותרת */}
@@ -452,51 +444,71 @@ export function DataGrid({ schema }: { schema: any }) {
                 {headerGroup.headers.map((header) => (
                   <TableHead 
                     key={header.id} 
+                    colSpan={header.colSpan}
                     className={cn(
                       "text-right relative border-l select-none group transition-colors",
-                      draggedColumnId === header.column.id && "opacity-50 bg-muted", // סימון ויזואלי לגרירה
-                      "hover:bg-muted/30"
+                      // שינוי סמן גרירה
+                      !isResizing && header.column.id !== "select" && "cursor-grab active:cursor-grabbing",
+                      // סימון ויזואלי בזמן גרירה
+                      draggingColumnId === header.column.id && "opacity-50 bg-muted border-dashed border-2 border-primary"
                     )}
                     style={{ width: header.getSize() }}
                     
-                    // מנגנון הזזה
-                    draggable={!isResizing && header.id !== "select"} // מניעת גרירה של עמודת בחירה
+                    // === גרירת עמודות: טיפול באירועים ===
+                    draggable={!isResizing && header.column.id !== "select"} 
                     onDragStart={(e) => {
-                       setDraggedColumnId(header.column.id)
+                       setDraggingColumnId(header.column.id)
                        e.dataTransfer.effectAllowed = "move"
+                       // הוספת ID לנתונים כדי לזהות בצד השני
                        e.dataTransfer.setData("text/plain", header.column.id)
+                       
+                       // יצירת תמונת גרירה שקופה (אופציונלי, כדי שלא יסתיר את העכבר)
+                       const img = new Image();
+                       img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+                       e.dataTransfer.setDragImage(img, 0, 0);
                     }}
                     onDragOver={(e) => {
-                      e.preventDefault() // חובה!
+                       // חובה לבטל את ברירת המחדל כדי לאפשר Drop
+                       e.preventDefault() 
                     }}
                     onDrop={(e) => {
-                      e.preventDefault()
-                      setDraggedColumnId(null)
-                      const draggedId = e.dataTransfer.getData("text/plain")
-                      const targetId = header.column.id
-                      
-                      // בדיקת תקינות ומניעת החלפה עם עמודת בחירה
-                      if (draggedId && targetId && draggedId !== targetId && targetId !== "select" && draggedId !== "select") {
-                         moveColumn(draggedId, targetId)
-                      }
+                       e.preventDefault()
+                       const draggedId = e.dataTransfer.getData("text/plain")
+                       const targetId = header.column.id
+                       
+                       setDraggingColumnId(null)
+
+                       if (draggedId && targetId && draggedId !== targetId && draggedId !== "select" && targetId !== "select") {
+                         // עדכון הסדר במערך
+                         const newOrder = [...columnOrder]
+                         const fromIndex = newOrder.indexOf(draggedId)
+                         const toIndex = newOrder.indexOf(targetId)
+                         
+                         if (fromIndex !== -1 && toIndex !== -1) {
+                           newOrder.splice(fromIndex, 1)
+                           newOrder.splice(toIndex, 0, draggedId)
+                           setColumnOrder(newOrder)
+                         }
+                       }
                     }}
                   >
                     {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                     
-                    {/* ידית גרירה לשינוי גודל - דקה יותר (w-1) */}
+                    {/* ידית שינוי גודל עדינה (4px) */}
                     {header.column.getCanResize() && (
                       <div
                         onMouseDown={(e) => {
                           e.stopPropagation();
                           e.preventDefault();
-                          setIsResizing(true);
+                          setIsResizing(true); // נועל את הגרירה
 
                           const startX = e.clientX;
                           const startWidth = header.getSize();
                           
                           const onMouseMove = (moveEvent: MouseEvent) => {
                             const currentX = moveEvent.clientX;
-                            const delta = startX - currentX; // RTL
+                            // RTL: דלתא הפוכה (שמאלה = חיובי)
+                            const delta = startX - currentX; 
                             const minSize = header.column.columnDef.minSize || 50;
                             const newWidth = Math.max(minSize, startWidth + delta); 
                             
@@ -507,7 +519,7 @@ export function DataGrid({ schema }: { schema: any }) {
                           };
 
                           const onMouseUp = () => {
-                            setIsResizing(false);
+                            setIsResizing(false); // משחרר את הנעילה
                             document.removeEventListener('mousemove', onMouseMove);
                             document.removeEventListener('mouseup', onMouseUp);
                           };
@@ -516,9 +528,8 @@ export function DataGrid({ schema }: { schema: any }) {
                           document.addEventListener('mouseup', onMouseUp);
                         }}
                         className={cn(
-                          "absolute left-0 top-0 h-full w-1 cursor-col-resize touch-none select-none z-20", // w-1 במקום w-4
-                          "hover:bg-primary", // צבע רק בהובר
-                          "transition-colors duration-200"
+                          "absolute left-0 top-0 h-full w-1 cursor-col-resize touch-none select-none z-20", 
+                          "hover:bg-primary transition-colors duration-200"
                         )}
                       />
                     )}

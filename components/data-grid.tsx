@@ -28,6 +28,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  TableFooter, 
 } from "@/components/ui/table"
 import { NewRideDialog } from "@/components/new-ride-dialog"
 import { RecordEditDialog } from "@/components/record-edit-dialog" 
@@ -69,7 +70,7 @@ export interface WorkScheduleRecord {
     flddNPbrzOCdgS36kx5?: any 
     fldx4hl8FwbxfkqXf0B?: any 
     fldVy6L2DCboXUTkjBX?: any 
-    fldqStJV3KKIutTY9hW?: string // מספר רכב
+    fldqStJV3KKIutTY9hW?: string 
   }
 }
 
@@ -84,7 +85,7 @@ const renderLinkField = (value: any) => {
   return String(value)
 }
 
-// הגדרת העמודות - מעודכן לפי הסדר החדש שביקשת
+// הגדרת העמודות
 export const columns: ColumnDef<WorkScheduleRecord>[] = [
   {
     id: "select",
@@ -190,7 +191,6 @@ export const columns: ColumnDef<WorkScheduleRecord>[] = [
     size: 120,
     minSize: 80,
   },
-  // --- העמודה החדשה ---
   {
     accessorKey: "fields.fldqStJV3KKIutTY9hW",
     id: "vehicle_number",
@@ -199,7 +199,6 @@ export const columns: ColumnDef<WorkScheduleRecord>[] = [
     size: 100,
     minSize: 80,
   },
-  // --- הערות לנהג (הוזז לכאן) ---
   {
     accessorKey: "fields.fldhNoiFEkEgrkxff02",
     id: "notes_driver",
@@ -208,7 +207,6 @@ export const columns: ColumnDef<WorkScheduleRecord>[] = [
     size: 150,
     minSize: 110,
   },
-  // --- עמודות מחיר (הוזזו לסוף) ---
   {
     accessorKey: "fields.fldxXnfHHQWwXY8dlEV",
     id: "price_client_plus_vat",
@@ -245,7 +243,7 @@ export const columns: ColumnDef<WorkScheduleRecord>[] = [
     accessorKey: "fields.fldT9IZTYlT4gCEnOK3",
     id: "profit",
     header: 'רווח+ מע"מ',
-    cell: ({ row }) => <div className="text-right">{row.original.fields.fldT9IZTYlT4gCEnOK3}</div>,
+    cell: ({ row }) => <div className="text-right font-bold text-green-600">{row.original.fields.fldT9IZTYlT4gCEnOK3}</div>,
     size: 100,
     minSize: 100,
   },
@@ -399,7 +397,6 @@ export function DataGrid({ schema }: { schema: any }) {
   const [isCalendarOpen, setIsCalendarOpen] = React.useState(false)
   const [isResizing, setIsResizing] = React.useState(false)
 
-  // שינוי מפתח הזיכרון כדי לאפס הגדרות ישנות
   const STORAGE_KEY = "workScheduleGridSettings_v3" 
 
   const fetchData = async () => {
@@ -418,7 +415,7 @@ export function DataGrid({ schema }: { schema: any }) {
     fetchData()
   }, [])
 
-  // טעינת הגדרות (סדר, גודל, נראות)
+  // טעינת הגדרות
   React.useEffect(() => {
     const savedSettings = localStorage.getItem(STORAGE_KEY)
     const defaultOrder = columns.map(c => c.id as string)
@@ -446,7 +443,7 @@ export function DataGrid({ schema }: { schema: any }) {
     }
   }, [])
 
-  // שמירת הגדרות בעת שינוי
+  // שמירת הגדרות
   React.useEffect(() => {
     if (columnOrder.length > 0) {
       const settingsToSave = {
@@ -460,16 +457,13 @@ export function DataGrid({ schema }: { schema: any }) {
 
   const handleSettingsSave = (newOrder: string[], newVisibility: VisibilityState) => {
     const finalOrder = ['select', ...newOrder.filter(id => id !== 'select')]
-    
     setColumnOrder(finalOrder)
     setColumnVisibility(newVisibility)
-    
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
       columnOrder: finalOrder,
       columnSizing,
       columnVisibility: newVisibility
     }))
-    
     toast({ title: "הגדרות התצוגה עודכנו בהצלחה" })
   }
 
@@ -552,6 +546,18 @@ export function DataGrid({ schema }: { schema: any }) {
     },
   })
 
+  // --- חישוב סיכומים ---
+  const totals = React.useMemo(() => {
+    const rows = table.getFilteredRowModel().rows
+    return {
+      price_client_plus_vat: rows.reduce((sum, row) => sum + (Number(row.original.fields.fldxXnfHHQWwXY8dlEV) || 0), 0),
+      price_client_full: rows.reduce((sum, row) => sum + (Number(row.original.fields.fldT7QLSKmSrjIHarDb) || 0), 0),
+      price_driver_plus_vat: rows.reduce((sum, row) => sum + (Number(row.original.fields.fldSNuxbM8oJfrQ3a9x) || 0), 0),
+      price_driver_full: rows.reduce((sum, row) => sum + (Number(row.original.fields.fldyQIhjdUeQwtHMldD) || 0), 0),
+      profit: rows.reduce((sum, row) => sum + (Number(row.original.fields.fldT9IZTYlT4gCEnOK3) || 0), 0),
+    }
+  }, [table.getFilteredRowModel().rows])
+
   return (
     <div className="w-full h-full flex flex-col space-y-4 p-4" dir="rtl">
       {/* שורת הכותרת */}
@@ -609,8 +615,8 @@ export function DataGrid({ schema }: { schema: any }) {
         </div>
       </div>
       
-      {/* גוף הטבלה */}
-      <div className="rounded-md border flex-1 overflow-auto max-h-[calc(100vh-200px)] relative">
+      {/* גוף הטבלה - שינוי קריטי: גובה קבוע */}
+      <div className="rounded-md border h-[calc(100vh-220px)] relative overflow-auto">
         <Table className="relative w-full" style={{ tableLayout: 'fixed' }}>
           <TableHeader className="sticky top-0 bg-background z-10 shadow-sm">
             {table.getHeaderGroups().map((headerGroup) => (
@@ -624,7 +630,6 @@ export function DataGrid({ schema }: { schema: any }) {
                   >
                     {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                     
-                    {/* ידית שינוי גודל */}
                     {header.column.getCanResize() && (
                       <div
                         onMouseDown={(e) => {
@@ -636,10 +641,9 @@ export function DataGrid({ schema }: { schema: any }) {
                           
                           const onMouseMove = (moveEvent: MouseEvent) => {
                             const currentX = moveEvent.clientX;
-                            const delta = startX - currentX; // RTL
+                            const delta = startX - currentX; 
                             const minSize = header.column.columnDef.minSize || 50;
                             const newWidth = Math.max(minSize, startWidth + delta); 
-                            
                             setColumnSizing(old => ({ ...old, [header.id]: newWidth }))
                           };
 
@@ -683,6 +687,32 @@ export function DataGrid({ schema }: { schema: any }) {
               </TableRow>
             )}
           </TableBody>
+
+          {/* שורת סיכום דביקה בתחתית */}
+          <tfoot className="sticky bottom-0 bg-muted/90 font-bold border-t z-20 shadow-[0_-2px_10px_rgba(0,0,0,0.1)]">
+             {table.getFooterGroups().map((footerGroup) => (
+                <tr key={footerGroup.id}>
+                  {footerGroup.headers.map((header) => {
+                      const colId = header.column.id;
+                      let content = null;
+
+                      // לוגיקה להצגת סיכום לפי עמודה
+                      if (colId === 'notes_driver') content = "סה\"כ:"
+                      if (colId === 'price_client_plus_vat') content = totals.price_client_plus_vat.toFixed(2)
+                      if (colId === 'price_client_full') content = totals.price_client_full.toFixed(2)
+                      if (colId === 'price_driver_plus_vat') content = totals.price_driver_plus_vat.toFixed(2)
+                      if (colId === 'price_driver_full') content = totals.price_driver_full.toFixed(2)
+                      if (colId === 'profit') content = totals.profit.toFixed(2)
+
+                      return (
+                        <td key={header.id} className="p-2 text-right border-l truncate" style={{ width: header.getSize() }}>
+                           {content}
+                        </td>
+                      )
+                  })}
+                </tr>
+             ))}
+          </tfoot>
         </Table>
       </div>
 

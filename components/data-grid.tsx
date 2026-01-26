@@ -210,12 +210,14 @@ export function DataGrid({ schema }: { schema: any }) {
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
   const [rowSelection, setRowSelection] = React.useState({})
   const [globalFilter, setGlobalFilter] = React.useState("")
-  // תיקון 1: ברירת מחדל לתאריך של היום
   const [dateFilter, setDateFilter] = React.useState<Date | undefined>(new Date())
   const { toast } = useToast()
   
   const [editingRecord, setEditingRecord] = React.useState<WorkScheduleRecord | null>(null)
   const [isEditOpen, setIsEditOpen] = React.useState(false)
+  
+  // משתנה חדש לשליטה בפתיחת הלוח שנה
+  const [isCalendarOpen, setIsCalendarOpen] = React.useState(false)
 
   const fetchData = async () => {
     try {
@@ -255,10 +257,19 @@ export function DataGrid({ schema }: { schema: any }) {
     setIsEditOpen(true)
   }
 
+  const handleDateSelect = (date: Date | undefined) => {
+    setDateFilter(date)
+    setIsCalendarOpen(false) // סוגר את הלוח מיד אחרי בחירה
+  }
+
+  const handleTodayClick = () => {
+    setDateFilter(new Date())
+    setIsCalendarOpen(false) // בוחר את היום וסוגר
+  }
+
   const filteredData = React.useMemo(() => {
     let filtered = data
     if (dateFilter) {
-      // תיקון 3: סינון לפי התאריך שנבחר (כולל ברירת המחדל של היום)
       const dateStr = format(dateFilter, "yyyy-MM-dd")
       filtered = filtered.filter(item => {
         const itemDate = item.fields.fldvNsQbfzMWTc7jakp
@@ -308,7 +319,7 @@ export function DataGrid({ schema }: { schema: any }) {
         <div className="flex items-center gap-2">
           <NewRideDialog onRideCreated={fetchData} />
 
-          <Popover>
+          <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
             <PopoverTrigger asChild>
               <Button
                 variant={"outline"}
@@ -322,15 +333,20 @@ export function DataGrid({ schema }: { schema: any }) {
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="end">
-              {/* תיקון 2: הוספת תמיכה בעברית ללוח השנה */}
               <Calendar
                 mode="single"
                 selected={dateFilter}
-                onSelect={setDateFilter}
+                onSelect={handleDateSelect}
                 locale={he}
                 dir="rtl"
                 initialFocus
               />
+              {/* כפתור "היום" בתחתית */}
+              <div className="border-t p-2">
+                <Button variant="ghost" className="w-full justify-center text-sm" onClick={handleTodayClick}>
+                  חזור להיום
+                </Button>
+              </div>
             </PopoverContent>
           </Popover>
           

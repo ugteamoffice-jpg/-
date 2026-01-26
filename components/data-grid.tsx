@@ -28,7 +28,6 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-  TableFooter, 
 } from "@/components/ui/table"
 import { NewRideDialog } from "@/components/new-ride-dialog"
 import { RecordEditDialog } from "@/components/record-edit-dialog" 
@@ -564,7 +563,16 @@ export function DataGrid({ schema }: { schema: any }) {
       {/* שורת הכותרת */}
       <div className="flex items-center justify-between gap-4 flex-none">
         
-        {/* צד ימין */}
+        {/* === צד שמאל החדש: סיכומים === */}
+        <div className="flex items-center gap-4 text-sm font-medium bg-muted/30 p-2 rounded-md border">
+           <div>סה"כ לקוח: <span className="font-bold">{totals.price_client_plus_vat.toLocaleString()}</span></div>
+           <div className="h-4 w-[1px] bg-border mx-1"></div>
+           <div>סה"כ נהג: <span className="font-bold">{totals.price_driver_plus_vat.toLocaleString()}</span></div>
+           <div className="h-4 w-[1px] bg-border mx-1"></div>
+           <div className="text-green-600">רווח: <span className="font-bold">{totals.profit.toLocaleString()}</span></div>
+        </div>
+
+        {/* צד ימין: כפתורים וחיפוש */}
         <div className="flex items-center gap-2">
           
           <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
@@ -584,7 +592,7 @@ export function DataGrid({ schema }: { schema: any }) {
                 dir="rtl"
                 initialFocus
                 showOutsideDays={true} 
-                fixedWeeks // מונע קפיצות גובה בחלון הלוח שנה
+                fixedWeeks 
               />
               <div className="border-t p-2">
                 <Button variant="ghost" className="w-full justify-center text-sm" onClick={handleTodayClick}>
@@ -618,8 +626,8 @@ export function DataGrid({ schema }: { schema: any }) {
         </div>
       </div>
       
-      {/* גוף הטבלה - גובה מחושב מראש כדי שיתפוס את כל המסך */}
-      <div className="rounded-md border h-[calc(100vh-220px)] w-full relative overflow-auto flex flex-col">
+      {/* גוף הטבלה - מחושב כדי למלא את המסך */}
+      <div className="rounded-md border h-[calc(100vh-140px)] w-full relative overflow-auto flex flex-col">
         <Table className="relative w-full h-full min-h-full" style={{ tableLayout: 'fixed' }}>
           <TableHeader className="sticky top-0 bg-background z-10 shadow-sm">
             {table.getHeaderGroups().map((headerGroup) => (
@@ -689,39 +697,7 @@ export function DataGrid({ schema }: { schema: any }) {
                 </TableCell>
               </TableRow>
             )}
-            
-            {/* שורת מילוי חכמה - Spacer Row - דוחפת את הסיכום למטה */}
-            <TableRow className="flex-1 hover:bg-transparent border-none" style={{ height: '100%' }}>
-                {table.getAllColumns().map((col) => {
-                   if (columnVisibility[col.id] === false) return null;
-                   return <TableCell key={col.id} className="p-0 border-l border-b-0" />
-                })}
-            </TableRow>
           </TableBody>
-
-          {/* שורת סיכום דביקה בתחתית עם רקע לבן והפרדה ברורה */}
-          <tfoot className="sticky bottom-0 bg-background font-bold border-t-2 z-20 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
-             {table.getFooterGroups().map((footerGroup) => (
-                <tr key={footerGroup.id}>
-                  {footerGroup.headers.map((header) => {
-                      const colId = header.column.id;
-                      let content = null;
-
-                      if (colId === 'price_client_plus_vat') content = totals.price_client_plus_vat.toFixed(2)
-                      if (colId === 'price_client_full') content = totals.price_client_full.toFixed(2)
-                      if (colId === 'price_driver_plus_vat') content = totals.price_driver_plus_vat.toFixed(2)
-                      if (colId === 'price_driver_full') content = totals.price_driver_full.toFixed(2)
-                      if (colId === 'profit') content = totals.profit.toFixed(2)
-
-                      return (
-                        <td key={header.id} className="p-2 text-right border-l truncate" style={{ width: header.getSize() }}>
-                           {content}
-                        </td>
-                      )
-                  })}
-                </tr>
-             ))}
-          </tfoot>
         </Table>
       </div>
 

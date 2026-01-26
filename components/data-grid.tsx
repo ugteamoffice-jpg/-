@@ -74,7 +74,6 @@ const renderLinkField = (value: any) => {
   return String(value)
 }
 
-// הגדרת עמודות עם גדלים התחלתיים
 export const columns: ColumnDef<WorkScheduleRecord>[] = [
   {
     id: "select",
@@ -102,6 +101,7 @@ export const columns: ColumnDef<WorkScheduleRecord>[] = [
     enableHiding: false,
     size: 50,
     minSize: 50,
+    enableResizing: false, // ביטול שינוי גודל לעמודת בחירה
   },
   {
     accessorKey: "fields.fldMv14lt0W7ZBkq1PH",
@@ -238,12 +238,11 @@ export function DataGrid({ schema }: { schema: any }) {
   const [globalFilter, setGlobalFilter] = React.useState("")
   const [dateFilter, setDateFilter] = React.useState<Date>(new Date())
   
-  // States for persistence and interactions
   const [columnOrder, setColumnOrder] = React.useState<ColumnOrderState>([])
   const [columnSizing, setColumnSizing] = React.useState<ColumnSizingState>({})
   
-  // משתנה קריטי: מונע גרירת עמודות בזמן שינוי גודל
   const [isResizing, setIsResizing] = React.useState(false)
+  const [draggedColumnId, setDraggedColumnId] = React.useState<string | null>(null) // זיהוי עמודה נגררת
 
   const { toast } = useToast()
   
@@ -267,14 +266,13 @@ export function DataGrid({ schema }: { schema: any }) {
     fetchData()
   }, [])
 
-  // טעינת הגדרות (סידור ורוחב)
   React.useEffect(() => {
     const savedSettings = localStorage.getItem("workScheduleGridSettings")
     if (savedSettings) {
       try {
         const parsed = JSON.parse(savedSettings)
         if (parsed.columnOrder && parsed.columnOrder.length > 0) setColumnOrder(parsed.columnOrder)
-        else setColumnOrder(columns.map(c => c.id as string)) // Fallback if empty
+        else setColumnOrder(columns.map(c => c.id as string))
         
         if (parsed.columnSizing) setColumnSizing(parsed.columnSizing)
       } catch (e) {
@@ -285,7 +283,6 @@ export function DataGrid({ schema }: { schema: any }) {
     }
   }, [])
 
-  // שמירת הגדרות
   React.useEffect(() => {
     if (columnOrder.length > 0) {
       const settingsToSave = {
@@ -375,7 +372,7 @@ export function DataGrid({ schema }: { schema: any }) {
     },
   })
 
-  // פונקציית הזזה שמעדכנת את הסדר
+  // פונקציית הזזה
   const moveColumn = (draggedId: string, targetId: string) => {
     const newOrder = [...columnOrder]
     const draggedIndex = newOrder.indexOf(draggedId)
@@ -457,69 +454,74 @@ export function DataGrid({ schema }: { schema: any }) {
                     key={header.id} 
                     className={cn(
                       "text-right relative border-l select-none group transition-colors",
-                      // שינוי צבע קטן כשגוררים מעל עמודה
-                      "hover:bg-muted/50" 
+                      draggedColumnId === header.column.id && "opacity-50 bg-muted", // סימון ויזואלי לגרירה
+                      "hover:bg-muted/30"
                     )}
                     style={{ width: header.getSize() }}
                     
-                    // מנגנון הזזת עמודות - מושבת בזמן שינוי גודל!
-                    draggable={!isResizing} 
-                    
+                    // מנגנון הזזה
+                    draggable={!isResizing && header.id !== "select"} // מניעת גרירה של עמודת בחירה
                     onDragStart={(e) => {
-                       e.dataTransfer.setData("text/plain", header.column.id) // שימוש ב-column.id
+                       setDraggedColumnId(header.column.id)
+                       e.dataTransfer.effectAllowed = "move"
+                       e.dataTransfer.setData("text/plain", header.column.id)
                     }}
                     onDragOver={(e) => {
-                      e.preventDefault() // חובה כדי לאפשר Drop
+                      e.preventDefault() // חובה!
                     }}
                     onDrop={(e) => {
                       e.preventDefault()
+                      setDraggedColumnId(null)
                       const draggedId = e.dataTransfer.getData("text/plain")
                       const targetId = header.column.id
-                      if (draggedId && targetId) {
+                      
+                      // בדיקת תקינות ומניעת החלפה עם עמודת בחירה
+                      if (draggedId && targetId && draggedId !== targetId && targetId !== "select" && draggedId !== "select") {
                          moveColumn(draggedId, targetId)
                       }
                     }}
                   >
                     {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                     
-                    {/* ידית גרירה לשינוי גודל */}
-                    <div
-                      onMouseDown={(e) => {
-                        e.stopPropagation();
-                        e.preventDefault();
-                        setIsResizing(true); // השבתת גרירת עמודות
+                    {/* ידית גרירה לשינוי גודל - דקה יותר (w-1) */}
+                    {header.column.getCanResize() && (
+                      <div
+                        onMouseDown={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          setIsResizing(true);
 
-                        const startX = e.clientX;
-                        const startWidth = header.getSize();
-                        
-                        const onMouseMove = (moveEvent: MouseEvent) => {
-                          const currentX = moveEvent.clientX;
-                          // RTL: גרירה שמאלה = הגדלת רוחב
-                          const delta = startX - currentX; 
-                          const minSize = header.column.columnDef.minSize || 50;
-                          const newWidth = Math.max(minSize, startWidth + delta); 
+                          const startX = e.clientX;
+                          const startWidth = header.getSize();
                           
-                          // עדכון State ישיר של הרוחב
-                          setColumnSizing(old => ({
-                             ...old,
-                             [header.id]: newWidth
-                          }))
-                        };
+                          const onMouseMove = (moveEvent: MouseEvent) => {
+                            const currentX = moveEvent.clientX;
+                            const delta = startX - currentX; // RTL
+                            const minSize = header.column.columnDef.minSize || 50;
+                            const newWidth = Math.max(minSize, startWidth + delta); 
+                            
+                            setColumnSizing(old => ({
+                               ...old,
+                               [header.id]: newWidth
+                            }))
+                          };
 
-                        const onMouseUp = () => {
-                          setIsResizing(false); // החזרת גרירת עמודות
-                          document.removeEventListener('mousemove', onMouseMove);
-                          document.removeEventListener('mouseup', onMouseUp);
-                        };
+                          const onMouseUp = () => {
+                            setIsResizing(false);
+                            document.removeEventListener('mousemove', onMouseMove);
+                            document.removeEventListener('mouseup', onMouseUp);
+                          };
 
-                        document.addEventListener('mousemove', onMouseMove);
-                        document.addEventListener('mouseup', onMouseUp);
-                      }}
-                      className={cn(
-                        "absolute left-0 top-0 h-full w-4 cursor-col-resize hover:bg-primary/30 touch-none select-none z-20 opacity-0 group-hover:opacity-100 transition-opacity",
-                        // וידוא שהידית נגישה תמיד
-                      )}
-                    />
+                          document.addEventListener('mousemove', onMouseMove);
+                          document.addEventListener('mouseup', onMouseUp);
+                        }}
+                        className={cn(
+                          "absolute left-0 top-0 h-full w-1 cursor-col-resize touch-none select-none z-20", // w-1 במקום w-4
+                          "hover:bg-primary", // צבע רק בהובר
+                          "transition-colors duration-200"
+                        )}
+                      />
+                    )}
                   </TableHead>
                 ))}
               </TableRow>

@@ -14,7 +14,7 @@ import {
   ColumnOrderState,
   ColumnSizingState,
 } from "@tanstack/react-table"
-import { ArrowUpDown, Calendar as CalendarIcon, Trash2 } from "lucide-react"
+import { ArrowUpDown, Calendar as CalendarIcon, Trash2, GripVertical, Settings2, Save } from "lucide-react"
 import { format } from "date-fns"
 import { he } from "date-fns/locale"
 
@@ -33,33 +33,43 @@ import { NewRideDialog } from "@/components/new-ride-dialog"
 import { RecordEditDialog } from "@/components/record-edit-dialog" 
 import { Calendar } from "@/components/ui/calendar"
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
+// --- ממשקים ---
 export interface WorkScheduleRecord {
   id: string
   fields: {
     [key: string]: any
-    fldvNsQbfzMWTc7jakp?: string // תאריך
-    fldLbXMREYfC8XVIghj?: string // התייצבות
-    fldA6e7ul57abYgAZDh?: string // תיאור
-    fld56G8M1LyHRRROWiL?: string // חזור
-    fldMv14lt0W7ZBkq1PH?: boolean // שלח
-    fldDOBGATSaTi5TxyHB?: boolean // מאושר
-    fldxXnfHHQWwXY8dlEV?: number // מחיר לקוח+ מע"מ
-    fldT7QLSKmSrjIHarDb?: number // מחיר לקוח כולל מע"מ
-    fldSNuxbM8oJfrQ3a9x?: number // מחיר נהג+ מע"מ
-    fldyQIhjdUeQwtHMldD?: number // מחיר נהג כולל מע"מ
-    fldT9IZTYlT4gCEnOK3?: number // רווח+ מע"מ
-    fldhNoiFEkEgrkxff02?: string // הערות לנהג
-    flddNPbrzOCdgS36kx5?: any // שם נהג (Link)
-    fldx4hl8FwbxfkqXf0B?: any // סוג רכב (Link)
-    fldVy6L2DCboXUTkjBX?: any // שם לקוח (Link)
-    fldqStJV3KKIutTY9hW?: string // מספר רכב
+    fldvNsQbfzMWTc7jakp?: string 
+    fldLbXMREYfC8XVIghj?: string 
+    fldA6e7ul57abYgAZDh?: string 
+    fld56G8M1LyHRRROWiL?: string 
+    fldMv14lt0W7ZBkq1PH?: boolean 
+    fldDOBGATSaTi5TxyHB?: boolean 
+    fldxXnfHHQWwXY8dlEV?: number 
+    fldT7QLSKmSrjIHarDb?: number 
+    fldSNuxbM8oJfrQ3a9x?: number 
+    fldyQIhjdUeQwtHMldD?: number 
+    fldT9IZTYlT4gCEnOK3?: number 
+    fldhNoiFEkEgrkxff02?: string 
+    flddNPbrzOCdgS36kx5?: any 
+    fldx4hl8FwbxfkqXf0B?: any 
+    fldVy6L2DCboXUTkjBX?: any 
+    fldqStJV3KKIutTY9hW?: string 
   }
 }
 
@@ -74,6 +84,7 @@ const renderLinkField = (value: any) => {
   return String(value)
 }
 
+// הגדרת העמודות (הוספתי ID מפורש לכל עמודה כדי שיהיה קל לזהות)
 export const columns: ColumnDef<WorkScheduleRecord>[] = [
   {
     id: "select",
@@ -101,7 +112,7 @@ export const columns: ColumnDef<WorkScheduleRecord>[] = [
     enableHiding: false,
     size: 50,
     minSize: 50,
-    enableResizing: false, 
+    enableResizing: false,
   },
   {
     accessorKey: "fields.fldMv14lt0W7ZBkq1PH",
@@ -229,6 +240,116 @@ export const columns: ColumnDef<WorkScheduleRecord>[] = [
   },
 ]
 
+// --- קומפוננטת דיאלוג לסידור עמודות ---
+function ColumnReorderDialog({ 
+  open, 
+  onOpenChange, 
+  columnOrder, 
+  onSave 
+}: { 
+  open: boolean; 
+  onOpenChange: (open: boolean) => void;
+  columnOrder: string[];
+  onSave: (newOrder: string[]) => void;
+}) {
+  const [internalOrder, setInternalOrder] = React.useState<string[]>([])
+  const [draggedItem, setDraggedItem] = React.useState<string | null>(null)
+
+  // סנכרון עם המצב הקיים בפתיחה
+  React.useEffect(() => {
+    if (open) {
+      setInternalOrder(columnOrder)
+    }
+  }, [open, columnOrder])
+
+  // פונקציית עזר למציאת שם העמודה
+  const getColumnName = (id: string) => {
+    if (id === 'select') return 'בחירה'
+    const col = columns.find(c => c.id === id)
+    return col ? (col.header as string) : id
+  }
+
+  const handleDragStart = (e: React.DragEvent, id: string) => {
+    setDraggedItem(id)
+    e.dataTransfer.effectAllowed = "move"
+    // יצירת אלמנט גרירה "רוח רפאים" כדי שלא יסתיר
+    const ghost = document.createElement('div')
+    ghost.style.opacity = '0'
+    document.body.appendChild(ghost)
+    e.dataTransfer.setDragImage(ghost, 0, 0)
+    setTimeout(() => document.body.removeChild(ghost), 0)
+  }
+
+  const handleDragOver = (e: React.DragEvent, targetId: string) => {
+    e.preventDefault()
+    if (!draggedItem || draggedItem === targetId) return
+
+    const currentOrder = [...internalOrder]
+    const draggedIdx = currentOrder.indexOf(draggedItem)
+    const targetIdx = currentOrder.indexOf(targetId)
+
+    if (draggedIdx !== -1 && targetIdx !== -1) {
+      currentOrder.splice(draggedIdx, 1)
+      currentOrder.splice(targetIdx, 0, draggedItem)
+      setInternalOrder(currentOrder)
+    }
+  }
+
+  const handleSave = () => {
+    onSave(internalOrder)
+    onOpenChange(false)
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[400px]" dir="rtl">
+        <DialogHeader>
+          <DialogTitle>סידור עמודות</DialogTitle>
+          <DialogDescription>
+            גרור את העמודות כדי לשנות את הסדר שלהן בטבלה.
+          </DialogDescription>
+        </DialogHeader>
+        
+        <ScrollArea className="h-[400px] pr-4 border rounded-md p-2">
+          <div className="space-y-2">
+            {internalOrder.map((colId) => {
+              // לא מציגים את עמודת הבחירה לסידור
+              if (colId === 'select') return null;
+              
+              return (
+                <div
+                  key={colId}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, colId)}
+                  onDragOver={(e) => handleDragOver(e, colId)}
+                  className={cn(
+                    "flex items-center gap-3 p-3 rounded-md border bg-card cursor-grab active:cursor-grabbing transition-colors",
+                    draggedItem === colId ? "bg-accent border-primary" : "hover:bg-accent/50"
+                  )}
+                >
+                  <GripVertical className="h-4 w-4 text-muted-foreground" />
+                  <span className="flex-1 font-medium text-sm">
+                    {getColumnName(colId)}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </ScrollArea>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>ביטול</Button>
+          <Button onClick={handleSave}>
+            <Save className="ml-2 h-4 w-4" />
+            שמור שינויים
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// --- הקומפוננטה הראשית ---
 export function DataGrid({ schema }: { schema: any }) {
   const [data, setData] = React.useState<WorkScheduleRecord[]>([])
   const [sorting, setSorting] = React.useState<SortingState>([])
@@ -238,20 +359,20 @@ export function DataGrid({ schema }: { schema: any }) {
   const [globalFilter, setGlobalFilter] = React.useState("")
   const [dateFilter, setDateFilter] = React.useState<Date>(new Date())
   
-  // States for persistence and interactions
+  // ניהול סדר עמודות וגדלים
   const [columnOrder, setColumnOrder] = React.useState<ColumnOrderState>([])
   const [columnSizing, setColumnSizing] = React.useState<ColumnSizingState>({})
   
-  // State for drag & drop
-  const [isResizing, setIsResizing] = React.useState(false)
-  const [draggingColumnId, setDraggingColumnId] = React.useState<string | null>(null) // זיהוי עמודה נגררת
+  // ניהול דיאלוג סידור עמודות
+  const [isReorderOpen, setIsReorderOpen] = React.useState(false)
 
   const { toast } = useToast()
   
   const [editingRecord, setEditingRecord] = React.useState<WorkScheduleRecord | null>(null)
   const [isEditOpen, setIsEditOpen] = React.useState(false)
   const [isCalendarOpen, setIsCalendarOpen] = React.useState(false)
-  
+  const [isResizing, setIsResizing] = React.useState(false)
+
   const fetchData = async () => {
     try {
       const response = await fetch('/api/work-schedule?take=1000') 
@@ -286,7 +407,7 @@ export function DataGrid({ schema }: { schema: any }) {
     }
   }, [])
 
-  // שמירת הגדרות
+  // שמירת הגדרות (רק גודל עמודות כאן, הסדר נשמר ידנית)
   React.useEffect(() => {
     if (columnOrder.length > 0) {
       const settingsToSave = {
@@ -296,6 +417,21 @@ export function DataGrid({ schema }: { schema: any }) {
       localStorage.setItem("workScheduleGridSettings", JSON.stringify(settingsToSave))
     }
   }, [columnOrder, columnSizing])
+
+  // פונקציית שמירה מהדיאלוג
+  const handleOrderSave = (newOrder: string[]) => {
+    // מוודאים ש 'select' תמיד נשארת ראשונה
+    const finalOrder = ['select', ...newOrder.filter(id => id !== 'select')]
+    setColumnOrder(finalOrder)
+    
+    // שמירה מיידית
+    localStorage.setItem("workScheduleGridSettings", JSON.stringify({
+      columnOrder: finalOrder,
+      columnSizing
+    }))
+    
+    toast({ title: "סדר העמודות עודכן בהצלחה" })
+  }
 
   const handleDeleteSelected = async () => {
     const selectedIds = Object.keys(rowSelection)
@@ -376,24 +512,6 @@ export function DataGrid({ schema }: { schema: any }) {
     },
   })
 
-  // פונקציית הזזה שמסתמכת על State ולא על Event Data
-  const moveColumn = (draggedId: string, targetId: string) => {
-    // הגנה מפני מצב שבו הסדר טרם נטען
-    let currentOrder = [...columnOrder];
-    if (currentOrder.length === 0) {
-        currentOrder = columns.map(c => c.id as string);
-    }
-
-    const draggedIndex = currentOrder.indexOf(draggedId)
-    const targetIndex = currentOrder.indexOf(targetId)
-    
-    if (draggedIndex !== -1 && targetIndex !== -1 && draggedIndex !== targetIndex) {
-      currentOrder.splice(draggedIndex, 1)
-      currentOrder.splice(targetIndex, 0, draggedId)
-      setColumnOrder(currentOrder)
-    }
-  }
-
   return (
     <div className="w-full h-full flex flex-col space-y-4 p-4" dir="rtl">
       {/* שורת הכותרת */}
@@ -404,12 +522,7 @@ export function DataGrid({ schema }: { schema: any }) {
           
           <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
             <PopoverTrigger asChild>
-              <Button
-                variant={"outline"}
-                className={cn(
-                  "w-[200px] justify-start text-right font-normal"
-                )}
-              >
+              <Button variant={"outline"} className={cn("w-[200px] justify-start text-right font-normal")}>
                 <CalendarIcon className="ml-2 h-4 w-4" />
                 {format(dateFilter, "PPP", { locale: he })}
               </Button>
@@ -433,6 +546,11 @@ export function DataGrid({ schema }: { schema: any }) {
           </Popover>
 
           <NewRideDialog onRideCreated={fetchData} />
+
+          {/* כפתור סדר עמודות החדש */}
+          <Button variant="outline" size="icon" onClick={() => setIsReorderOpen(true)} title="סדר עמודות">
+            <Settings2 className="h-4 w-4" />
+          </Button>
 
           <div className="flex items-center w-full max-w-sm">
              <Input
@@ -462,43 +580,8 @@ export function DataGrid({ schema }: { schema: any }) {
                   <TableHead 
                     key={header.id} 
                     colSpan={header.colSpan}
-                    className={cn(
-                      "text-right relative border-l select-none group transition-colors",
-                      !isResizing && header.column.id !== "select" && "cursor-grab active:cursor-grabbing",
-                      draggingColumnId === header.column.id && "opacity-50 bg-muted border-dashed border-2 border-primary"
-                    )}
+                    className="text-right relative border-l select-none group hover:bg-muted/30"
                     style={{ width: header.getSize() }}
-                    
-                    // === גרירת עמודות: השיטה הבטוחה ===
-                    draggable={!isResizing && header.column.id !== "select"} 
-                    onDragStart={(e) => {
-                       // שמירה ב-State של React - הכי אמין
-                       setDraggingColumnId(header.column.id)
-                       e.dataTransfer.effectAllowed = "move"
-                       // שמירה גם בדפדפן כגיבוי
-                       e.dataTransfer.setData("text/plain", header.column.id)
-                       
-                       const img = new Image();
-                       img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-                       e.dataTransfer.setDragImage(img, 0, 0);
-                    }}
-                    onDragOver={(e) => {
-                       e.preventDefault() // חובה לאפשר Drop
-                    }}
-                    onDrop={(e) => {
-                       e.preventDefault()
-                       
-                       // כאן התיקון: שימוש ב-draggingColumnId מה-State
-                       const draggedId = draggingColumnId;
-                       const targetId = header.column.id
-                       
-                       // איפוס
-                       setDraggingColumnId(null)
-
-                       if (draggedId && targetId && draggedId !== targetId && targetId !== "select" && draggedId !== "select") {
-                          moveColumn(draggedId, targetId)
-                       }
-                    }}
                   >
                     {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                     
@@ -508,36 +591,28 @@ export function DataGrid({ schema }: { schema: any }) {
                         onMouseDown={(e) => {
                           e.stopPropagation();
                           e.preventDefault();
-                          setIsResizing(true); 
-
+                          setIsResizing(true);
                           const startX = e.clientX;
                           const startWidth = header.getSize();
                           
                           const onMouseMove = (moveEvent: MouseEvent) => {
                             const currentX = moveEvent.clientX;
-                            const delta = startX - currentX; 
+                            const delta = startX - currentX; // RTL
                             const minSize = header.column.columnDef.minSize || 50;
                             const newWidth = Math.max(minSize, startWidth + delta); 
                             
-                            setColumnSizing(old => ({
-                               ...old,
-                               [header.id]: newWidth
-                            }))
+                            setColumnSizing(old => ({ ...old, [header.id]: newWidth }))
                           };
 
                           const onMouseUp = () => {
-                            setIsResizing(false); 
+                            setIsResizing(false);
                             document.removeEventListener('mousemove', onMouseMove);
                             document.removeEventListener('mouseup', onMouseUp);
                           };
-
                           document.addEventListener('mousemove', onMouseMove);
                           document.addEventListener('mouseup', onMouseUp);
                         }}
-                        className={cn(
-                          "absolute left-0 top-0 h-full w-1 cursor-col-resize touch-none select-none z-20", 
-                          "hover:bg-primary transition-colors duration-200"
-                        )}
+                        className="absolute left-0 top-0 h-full w-1 cursor-col-resize touch-none select-none z-20 hover:bg-primary transition-colors duration-200"
                       />
                     )}
                   </TableHead>
@@ -580,6 +655,13 @@ export function DataGrid({ schema }: { schema: any }) {
         onSave={(updatedRecord) => {
           setData(data.map((r) => (r.id === updatedRecord.id ? updatedRecord : r)))
         }}
+      />
+
+      <ColumnReorderDialog 
+        open={isReorderOpen} 
+        onOpenChange={setIsReorderOpen}
+        columnOrder={columnOrder}
+        onSave={handleOrderSave}
       />
     </div>
   )

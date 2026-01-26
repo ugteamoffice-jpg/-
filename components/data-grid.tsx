@@ -583,7 +583,7 @@ export function DataGrid({ schema }: { schema: any }) {
                 locale={he}
                 dir="rtl"
                 initialFocus
-                fixedWeeks // הוספתי את זה לתיקון הקפיצות בתאריכים
+                showOutsideDays={false} // תיקון: לא מציג ימים מחודש אחר
               />
               <div className="border-t p-2">
                 <Button variant="ghost" className="w-full justify-center text-sm" onClick={handleTodayClick}>

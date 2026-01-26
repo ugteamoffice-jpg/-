@@ -45,7 +45,7 @@ import {
 import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 
-// הגדרת המבנה לפי ה-IDs ששלחת
+// הגדרת המבנה לפי ה-IDs שלך
 export interface WorkScheduleRecord {
   id: string
   fields: {
@@ -62,14 +62,14 @@ export interface WorkScheduleRecord {
     fldyQIhjdUeQwtHMldD?: number // מחיר נהג כולל מע"מ
     fldT9IZTYlT4gCEnOK3?: number // רווח+ מע"מ
     fldhNoiFEkEgrkxff02?: string // הערות לנהג
-    flddNPbrzOCdgS36kx5?: any // שם נהג (Link) - אובייקט או מערך
-    fldx4hl8FwbxfkqXf0B?: any // סוג רכב (Link) - אובייקט או מערך
-    fldVy6L2DCboXUTkjBX?: any // שם לקוח (Link) - אובייקט או מערך
+    flddNPbrzOCdgS36kx5?: any // שם נהג (Link)
+    fldx4hl8FwbxfkqXf0B?: any // סוג רכב (Link)
+    fldVy6L2DCboXUTkjBX?: any // שם לקוח (Link)
     fldqStJV3KKIutTY9hW?: string // מספר רכב
   }
 }
 
-// פונקציית עזר להצגת שדות מקושרים (Link Fields)
+// פונקציית עזר להצגת שדות מקושרים
 const renderLinkField = (value: any) => {
   if (!value) return <span className="text-muted-foreground">-</span>
   if (Array.isArray(value) && value.length > 0) {
@@ -210,7 +210,8 @@ export function DataGrid({ schema }: { schema: any }) {
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
   const [rowSelection, setRowSelection] = React.useState({})
   const [globalFilter, setGlobalFilter] = React.useState("")
-  const [dateFilter, setDateFilter] = React.useState<Date | undefined>(undefined)
+  // תיקון 1: ברירת מחדל לתאריך של היום
+  const [dateFilter, setDateFilter] = React.useState<Date | undefined>(new Date())
   const { toast } = useToast()
   
   const [editingRecord, setEditingRecord] = React.useState<WorkScheduleRecord | null>(null)
@@ -257,6 +258,7 @@ export function DataGrid({ schema }: { schema: any }) {
   const filteredData = React.useMemo(() => {
     let filtered = data
     if (dateFilter) {
+      // תיקון 3: סינון לפי התאריך שנבחר (כולל ברירת המחדל של היום)
       const dateStr = format(dateFilter, "yyyy-MM-dd")
       filtered = filtered.filter(item => {
         const itemDate = item.fields.fldvNsQbfzMWTc7jakp
@@ -320,10 +322,13 @@ export function DataGrid({ schema }: { schema: any }) {
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="end">
+              {/* תיקון 2: הוספת תמיכה בעברית ללוח השנה */}
               <Calendar
                 mode="single"
                 selected={dateFilter}
                 onSelect={setDateFilter}
+                locale={he}
+                dir="rtl"
                 initialFocus
               />
             </PopoverContent>

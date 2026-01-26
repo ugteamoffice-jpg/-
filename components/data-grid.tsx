@@ -583,6 +583,7 @@ export function DataGrid({ schema }: { schema: any }) {
                 locale={he}
                 dir="rtl"
                 initialFocus
+                fixedWeeks // הוספתי את זה לתיקון הקפיצות בתאריכים
               />
               <div className="border-t p-2">
                 <Button variant="ghost" className="w-full justify-center text-sm" onClick={handleTodayClick}>
@@ -616,9 +617,9 @@ export function DataGrid({ schema }: { schema: any }) {
         </div>
       </div>
       
-      {/* גוף הטבלה - גובה מחושב מראש + h-full לטבלה עצמה */}
-      <div className="rounded-md border h-[calc(100vh-140px)] w-full relative overflow-auto">
-        <Table className="relative w-full h-full" style={{ tableLayout: 'fixed' }}>
+      {/* גוף הטבלה - גובה מחושב מראש */}
+      <div className="rounded-md border h-[calc(100vh-220px)] w-full relative overflow-auto flex flex-col">
+        <Table className="relative w-full h-full min-h-full" style={{ tableLayout: 'fixed' }}>
           <TableHeader className="sticky top-0 bg-background z-10 shadow-sm">
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
@@ -688,20 +689,17 @@ export function DataGrid({ schema }: { schema: any }) {
               </TableRow>
             )}
             
-            {/* שורת המילוי הקריטית - היא זאת שדוחפת את הפוטר למטה */}
-            {table.getRowModel().rows?.length > 0 && (
-              <TableRow className="hover:bg-transparent border-b-0" style={{ height: '100%' }}>
+            {/* שורת מילוי קריטית - דוחפת את ה-footer למטה */}
+            <TableRow className="flex-1 hover:bg-transparent border-none" style={{ height: '100%' }}>
                 {table.getAllColumns().map((col) => {
-                   // הסתרת עמודות נסתרות גם כאן
                    if (columnVisibility[col.id] === false) return null;
-                   return <TableCell key={col.id} className="p-0 border-l" />
+                   return <TableCell key={col.id} className="p-0 border-l border-b-0" />
                 })}
-              </TableRow>
-            )}
+            </TableRow>
           </TableBody>
 
-          {/* שורת סיכום דביקה בתחתית */}
-          <tfoot className="sticky bottom-0 bg-muted/90 font-bold border-t z-20 shadow-[0_-2px_10px_rgba(0,0,0,0.1)]">
+          {/* שורת סיכום דביקה בתחתית עם רקע לבן */}
+          <tfoot className="sticky bottom-0 bg-background font-bold border-t z-20 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
              {table.getFooterGroups().map((footerGroup) => (
                 <tr key={footerGroup.id}>
                   {footerGroup.headers.map((header) => {

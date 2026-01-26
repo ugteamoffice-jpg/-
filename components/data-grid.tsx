@@ -47,7 +47,6 @@ import {
 } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
-// השימוש ברכיב שיצרת
 import { ScrollArea } from "@/components/ui/scroll-area"
 
 // --- ממשקים ---
@@ -110,7 +109,7 @@ export const columns: ColumnDef<WorkScheduleRecord>[] = [
       </div>
     ),
     enableSorting: false,
-    enableHiding: false,
+    enableHiding: false, // עמודת בחירה אי אפשר להסתיר
     size: 50,
     minSize: 50,
     enableResizing: false,
@@ -241,37 +240,41 @@ export const columns: ColumnDef<WorkScheduleRecord>[] = [
   },
 ]
 
-// --- קומפוננטת דיאלוג לסידור עמודות ---
+// --- קומפוננטת דיאלוג לסידור והסתרת עמודות ---
 function ColumnReorderDialog({ 
   open, 
   onOpenChange, 
   columnOrder, 
+  columnVisibility, // קבלת מצב הנראות הנוכחי
   onSave 
 }: { 
   open: boolean; 
   onOpenChange: (open: boolean) => void;
   columnOrder: string[];
-  onSave: (newOrder: string[]) => void;
+  columnVisibility: VisibilityState;
+  onSave: (newOrder: string[], newVisibility: VisibilityState) => void;
 }) {
   const [internalOrder, setInternalOrder] = React.useState<string[]>([])
+  const [internalVisibility, setInternalVisibility] = React.useState<VisibilityState>({})
   const [draggedItem, setDraggedItem] = React.useState<string | null>(null)
 
   React.useEffect(() => {
     if (open) {
       setInternalOrder(columnOrder)
+      setInternalVisibility(columnVisibility)
     }
-  }, [open, columnOrder])
+  }, [open, columnOrder, columnVisibility])
 
   const getColumnName = (id: string) => {
     if (id === 'select') return 'בחירה'
     const col = columns.find(c => c.id === id)
-    return col ? (col.header as string) : id
+    if (col && typeof col.header === 'string') return col.header
+    return id 
   }
 
   const handleDragStart = (e: React.DragEvent, id: string) => {
     setDraggedItem(id)
     e.dataTransfer.effectAllowed = "move"
-    // יצירת אלמנט גרירה "רוח רפאים"
     const ghost = document.createElement('div')
     ghost.style.opacity = '0'
     document.body.appendChild(ghost)
@@ -294,27 +297,37 @@ function ColumnReorderDialog({
     }
   }
 
+  const toggleVisibility = (id: string, isChecked: boolean) => {
+    setInternalVisibility(prev => ({
+      ...prev,
+      [id]: isChecked
+    }))
+  }
+
   const handleSave = () => {
-    onSave(internalOrder)
+    onSave(internalOrder, internalVisibility)
     onOpenChange(false)
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[400px]" dir="rtl">
+      <DialogContent className="sm:max-w-[450px]" dir="rtl">
         <DialogHeader>
-          <DialogTitle>סידור עמודות</DialogTitle>
+          <DialogTitle>ניהול עמודות</DialogTitle>
           <DialogDescription>
-            גרור את העמודות כדי לשנות את הסדר שלהן בטבלה.
+            סמן עמודות להצגה, וגרור אותן לשינוי הסדר.
           </DialogDescription>
         </DialogHeader>
         
-        {/* שימוש ב-ScrollArea שיצרת */}
         <ScrollArea className="h-[400px] pr-4 border rounded-md p-2">
           <div className="space-y-2">
             {internalOrder.map((colId) => {
               if (colId === 'select') return null;
-              
+              if (!columns.find(c => c.id === colId)) return null;
+
+              // בדיקה האם העמודה גלויה (ברירת מחדל true)
+              const isVisible = internalVisibility[colId] !== false
+
               return (
                 <div
                   key={colId}
@@ -322,12 +335,19 @@ function ColumnReorderDialog({
                   onDragStart={(e) => handleDragStart(e, colId)}
                   onDragOver={(e) => handleDragOver(e, colId)}
                   className={cn(
-                    "flex items-center gap-3 p-3 rounded-md border bg-card cursor-grab active:cursor-grabbing transition-colors",
+                    "flex items-center gap-3 p-3 rounded-md border bg-card cursor-grab active:cursor-grabbing transition-colors text-foreground",
                     draggedItem === colId ? "bg-accent border-primary" : "hover:bg-accent/50"
                   )}
                 >
                   <GripVertical className="h-4 w-4 text-muted-foreground" />
-                  <span className="flex-1 font-medium text-sm">
+                  
+                  {/* צ'קבוקס להסתרה/הצגה */}
+                  <Checkbox 
+                    checked={isVisible}
+                    onCheckedChange={(checked) => toggleVisibility(colId, checked as boolean)}
+                  />
+
+                  <span className={cn("flex-1 font-medium text-sm", !isVisible && "text-muted-foreground line-through")}>
                     {getColumnName(colId)}
                   </span>
                 </div>
@@ -353,24 +373,26 @@ export function DataGrid({ schema }: { schema: any }) {
   const [data, setData] = React.useState<WorkScheduleRecord[]>([])
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
+  
+  // כאן אנחנו מנהלים את הנראות של העמודות
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
+  
   const [rowSelection, setRowSelection] = React.useState({})
   const [globalFilter, setGlobalFilter] = React.useState("")
   const [dateFilter, setDateFilter] = React.useState<Date>(new Date())
   
-  // ניהול סדר עמודות וגדלים
   const [columnOrder, setColumnOrder] = React.useState<ColumnOrderState>([])
   const [columnSizing, setColumnSizing] = React.useState<ColumnSizingState>({})
-  
-  // ניהול דיאלוג סידור עמודות
   const [isReorderOpen, setIsReorderOpen] = React.useState(false)
 
   const { toast } = useToast()
-  
   const [editingRecord, setEditingRecord] = React.useState<WorkScheduleRecord | null>(null)
   const [isEditOpen, setIsEditOpen] = React.useState(false)
   const [isCalendarOpen, setIsCalendarOpen] = React.useState(false)
   const [isResizing, setIsResizing] = React.useState(false)
+
+  // שומרים גם את ה-visibility באותו מפתח
+  const STORAGE_KEY = "workScheduleGridSettings_v2" 
 
   const fetchData = async () => {
     try {
@@ -388,46 +410,62 @@ export function DataGrid({ schema }: { schema: any }) {
     fetchData()
   }, [])
 
-  // טעינת הגדרות שמורות
+  // טעינת הגדרות (סדר, גודל, נראות)
   React.useEffect(() => {
-    const savedSettings = localStorage.getItem("workScheduleGridSettings")
+    const savedSettings = localStorage.getItem(STORAGE_KEY)
+    const defaultOrder = columns.map(c => c.id as string)
+    
     if (savedSettings) {
       try {
         const parsed = JSON.parse(savedSettings)
-        if (parsed.columnOrder && parsed.columnOrder.length > 0) setColumnOrder(parsed.columnOrder)
-        else setColumnOrder(columns.map(c => c.id as string))
+        if (parsed.columnOrder && parsed.columnOrder.length > 0) {
+           const validOrder = parsed.columnOrder.filter((id: string) => 
+             id === 'select' || columns.find(c => c.id === id)
+           )
+           setColumnOrder(validOrder.length > 0 ? validOrder : defaultOrder)
+        } else {
+           setColumnOrder(defaultOrder)
+        }
         
         if (parsed.columnSizing) setColumnSizing(parsed.columnSizing)
+        // טעינת מצב ההסתרה
+        if (parsed.columnVisibility) setColumnVisibility(parsed.columnVisibility)
+
       } catch (e) {
-        setColumnOrder(columns.map(c => c.id as string))
+        setColumnOrder(defaultOrder)
       }
     } else {
-      setColumnOrder(columns.map(c => c.id as string))
+      setColumnOrder(defaultOrder)
     }
   }, [])
 
-  // שמירת הגדרות (רק גודל עמודות כאן, הסדר נשמר ידנית)
+  // שמירת הגדרות בעת שינוי (כולל נראות)
   React.useEffect(() => {
     if (columnOrder.length > 0) {
       const settingsToSave = {
         columnOrder,
-        columnSizing
+        columnSizing,
+        columnVisibility // שמירת המצב
       }
-      localStorage.setItem("workScheduleGridSettings", JSON.stringify(settingsToSave))
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(settingsToSave))
     }
-  }, [columnOrder, columnSizing])
+  }, [columnOrder, columnSizing, columnVisibility])
 
-  // פונקציית שמירה מהדיאלוג
-  const handleOrderSave = (newOrder: string[]) => {
+  // פונקציית שמירה מהדיאלוג (מקבלת גם סדר וגם נראות)
+  const handleSettingsSave = (newOrder: string[], newVisibility: VisibilityState) => {
     const finalOrder = ['select', ...newOrder.filter(id => id !== 'select')]
-    setColumnOrder(finalOrder)
     
-    localStorage.setItem("workScheduleGridSettings", JSON.stringify({
+    setColumnOrder(finalOrder)
+    setColumnVisibility(newVisibility)
+    
+    // שמירה ידנית מיידית ליתר ביטחון
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
       columnOrder: finalOrder,
-      columnSizing
+      columnSizing,
+      columnVisibility: newVisibility
     }))
     
-    toast({ title: "סדר העמודות עודכן בהצלחה" })
+    toast({ title: "הגדרות התצוגה עודכנו בהצלחה" })
   }
 
   const handleDeleteSelected = async () => {
@@ -495,14 +533,14 @@ export function DataGrid({ schema }: { schema: any }) {
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
-    onColumnVisibilityChange: setColumnVisibility,
+    onColumnVisibilityChange: setColumnVisibility, // חיבור ה-handler של הטבלה
     onRowSelectionChange: setRowSelection,
     onColumnOrderChange: setColumnOrder,
     onColumnSizingChange: setColumnSizing,
     state: {
       sorting,
       columnFilters,
-      columnVisibility,
+      columnVisibility, // העברת ה-State לטבלה
       rowSelection,
       columnOrder,
       columnSizing,
@@ -544,12 +582,6 @@ export function DataGrid({ schema }: { schema: any }) {
 
           <NewRideDialog onRideCreated={fetchData} />
 
-          {/* כפתור סדר עמודות עם טקסט */}
-          <Button variant="outline" onClick={() => setIsReorderOpen(true)}>
-            <Settings2 className="h-4 w-4 ml-2" />
-            סדר עמודות
-          </Button>
-
           <div className="flex items-center w-full max-w-sm">
              <Input
                placeholder="חיפוש..."
@@ -558,6 +590,11 @@ export function DataGrid({ schema }: { schema: any }) {
                className="max-w-xs"
              />
            </div>
+
+           {/* כפתור ניהול עמודות */}
+           <Button variant="outline" size="icon" onClick={() => setIsReorderOpen(true)} title="ניהול עמודות">
+            <Settings2 className="h-4 w-4" />
+          </Button>
 
           {Object.keys(rowSelection).length > 0 && (
             <Button variant="destructive" size="sm" onClick={handleDeleteSelected}>
@@ -655,12 +692,12 @@ export function DataGrid({ schema }: { schema: any }) {
         }}
       />
 
-      {/* הדיאלוג החדש */}
       <ColumnReorderDialog 
         open={isReorderOpen} 
         onOpenChange={setIsReorderOpen}
         columnOrder={columnOrder}
-        onSave={handleOrderSave}
+        columnVisibility={columnVisibility} // העברת המצב הנוכחי לדיאלוג
+        onSave={handleSettingsSave}
       />
     </div>
   )

@@ -616,9 +616,9 @@ export function DataGrid({ schema }: { schema: any }) {
         </div>
       </div>
       
-      {/* גוף הטבלה - הגובה מוגדר כאן ישירות על המיכל של הטבלה */}
-      <div className="rounded-md border h-[calc(100vh-220px)] w-full relative overflow-auto">
-        <Table className="relative w-full" style={{ tableLayout: 'fixed' }}>
+      {/* גוף הטבלה - גובה מחושב מראש + h-full לטבלה עצמה */}
+      <div className="rounded-md border h-[calc(100vh-140px)] w-full relative overflow-auto">
+        <Table className="relative w-full h-full" style={{ tableLayout: 'fixed' }}>
           <TableHeader className="sticky top-0 bg-background z-10 shadow-sm">
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
@@ -670,7 +670,7 @@ export function DataGrid({ schema }: { schema: any }) {
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
-                  className="cursor-pointer hover:bg-muted/50"
+                  className="cursor-pointer hover:bg-muted/50 h-fit"
                   onClick={() => handleRowClick(row.original)}
                 >
                   {row.getVisibleCells().map((cell) => (
@@ -687,6 +687,17 @@ export function DataGrid({ schema }: { schema: any }) {
                 </TableCell>
               </TableRow>
             )}
+            
+            {/* שורת המילוי הקריטית - היא זאת שדוחפת את הפוטר למטה */}
+            {table.getRowModel().rows?.length > 0 && (
+              <TableRow className="hover:bg-transparent border-b-0" style={{ height: '100%' }}>
+                {table.getAllColumns().map((col) => {
+                   // הסתרת עמודות נסתרות גם כאן
+                   if (columnVisibility[col.id] === false) return null;
+                   return <TableCell key={col.id} className="p-0 border-l" />
+                })}
+              </TableRow>
+            )}
           </TableBody>
 
           {/* שורת סיכום דביקה בתחתית */}
@@ -697,7 +708,6 @@ export function DataGrid({ schema }: { schema: any }) {
                       const colId = header.column.id;
                       let content = null;
 
-                      // ללא טקסט "סה"כ"
                       if (colId === 'price_client_plus_vat') content = totals.price_client_plus_vat.toFixed(2)
                       if (colId === 'price_client_full') content = totals.price_client_full.toFixed(2)
                       if (colId === 'price_driver_plus_vat') content = totals.price_driver_plus_vat.toFixed(2)

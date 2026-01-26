@@ -554,20 +554,19 @@ export function DataGrid({ schema }: { schema: any }) {
       price_driver_plus_vat: rows.reduce((sum, row) => sum + (Number(row.original.fields.fldSNuxbM8oJfrQ3a9x) || 0), 0),
       price_driver_full: rows.reduce((sum, row) => sum + (Number(row.original.fields.fldyQIhjdUeQwtHMldD) || 0), 0),
       profit_plus_vat: rows.reduce((sum, row) => sum + (Number(row.original.fields.fldT9IZTYlT4gCEnOK3) || 0), 0),
-      // חישוב רווח כולל = לקוח כולל - נהג כולל
       profit_full: rows.reduce((sum, row) => sum + ((Number(row.original.fields.fldT7QLSKmSrjIHarDb) || 0) - (Number(row.original.fields.fldyQIhjdUeQwtHMldD) || 0)), 0),
     }
   }, [table.getFilteredRowModel().rows])
 
   return (
-    <div className="w-full h-full flex flex-col space-y-4 p-4" dir="rtl">
+    // הקונטיינר הראשי - גובה קבוע שמתחשב בגודל המסך (פחות padding)
+    <div className="w-full h-[calc(100vh-2rem)] flex flex-col space-y-4 p-4" dir="rtl">
       
       {/* שורת הכותרת */}
       <div className="flex items-center justify-between gap-4 flex-none">
         
         {/* צד ימין (RTL Start) - כפתורים וכלים */}
         <div className="flex items-center gap-2">
-          
           <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
             <PopoverTrigger asChild>
               <Button variant={"outline"} className={cn("w-[200px] justify-start text-right font-normal")}>
@@ -584,8 +583,7 @@ export function DataGrid({ schema }: { schema: any }) {
                 locale={he}
                 dir="rtl"
                 initialFocus
-                showOutsideDays={true}
-                fixedWeeks 
+                showOutsideDays={false}
               />
               <div className="border-t p-2">
                 <Button variant="ghost" className="w-full justify-center text-sm" onClick={handleTodayClick}>
@@ -618,32 +616,35 @@ export function DataGrid({ schema }: { schema: any }) {
           )}
         </div>
 
-        {/* צד שמאל (RTL End) - סיכומים */}
-        <div className="flex items-center gap-4 text-sm bg-muted/20 p-2 px-4 rounded-md border shadow-sm">
-           <div className="flex flex-col items-end">
-              <span>סה"כ ללקוח+ מע"מ: <span className="font-bold">{totals.price_client_plus_vat.toLocaleString()}</span></span>
-              <span>סה"כ ללקוח כולל מע"מ: <span className="font-bold">{totals.price_client_full.toLocaleString()}</span></span>
+        {/* צד שמאל (RTL End) - מלבן סיכומים מסודר */}
+        <div className="flex gap-6 text-sm bg-muted/20 p-2 px-4 rounded-md border shadow-sm text-right">
+           {/* עמודת רווח */}
+           <div className="flex flex-col gap-1 items-end justify-center text-green-600 font-bold">
+              <span>רווח+ מע"מ: {totals.profit_plus_vat.toLocaleString()}</span>
+              <span>רווח כולל מע"מ: {totals.profit_full.toLocaleString()}</span>
            </div>
-           
-           <div className="h-8 w-[1px] bg-border"></div>
 
-           <div className="flex flex-col items-end">
+           <div className="w-[1px] bg-border my-1"></div>
+
+           {/* עמודת נהג */}
+           <div className="flex flex-col gap-1 items-end justify-center">
               <span>סה"כ לנהג+ מע"מ: <span className="font-bold">{totals.price_driver_plus_vat.toLocaleString()}</span></span>
               <span>סה"כ לנהג כולל מע"מ: <span className="font-bold">{totals.price_driver_full.toLocaleString()}</span></span>
            </div>
 
-           <div className="h-8 w-[1px] bg-border"></div>
+           <div className="w-[1px] bg-border my-1"></div>
 
-           <div className="flex flex-col items-end text-green-600 font-medium">
-              <span>רווח+ מע"מ: <span className="font-bold">{totals.profit_plus_vat.toLocaleString()}</span></span>
-              <span>רווח כולל מע"מ: <span className="font-bold">{totals.profit_full.toLocaleString()}</span></span>
+           {/* עמודת לקוח */}
+           <div className="flex flex-col gap-1 items-end justify-center">
+              <span>סה"כ ללקוח+ מע"מ: <span className="font-bold">{totals.price_client_plus_vat.toLocaleString()}</span></span>
+              <span>סה"כ ללקוח כולל מע"מ: <span className="font-bold">{totals.price_client_full.toLocaleString()}</span></span>
            </div>
         </div>
 
       </div>
       
-      {/* גוף הטבלה */}
-      <div className="rounded-md border h-[calc(100vh-140px)] w-full relative overflow-auto">
+      {/* גוף הטבלה - מוגדר למלא את השטח הנותר ללא גלילה מיותרת */}
+      <div className="rounded-md border flex-1 overflow-auto min-h-0">
         <Table className="relative w-full" style={{ tableLayout: 'fixed' }}>
           <TableHeader className="sticky top-0 bg-background z-10 shadow-sm">
             {table.getHeaderGroups().map((headerGroup) => (

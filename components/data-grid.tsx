@@ -13,7 +13,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table"
-import { ArrowUpDown, ChevronDown, Plus, Search, Calendar as CalendarIcon, X, Trash2 } from "lucide-react"
+import { ArrowUpDown, ChevronDown, Search, Calendar as CalendarIcon, X, Trash2 } from "lucide-react"
 import { format } from "date-fns"
 import { he } from "date-fns/locale"
 
@@ -23,7 +23,6 @@ import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
@@ -46,7 +45,7 @@ import {
 import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 
-// הגדרת טיפוס הנתונים עם ה-IDs החדשים
+// הגדרת המבנה לפי ה-IDs ששלחת
 export interface WorkScheduleRecord {
   id: string
   fields: {
@@ -63,23 +62,31 @@ export interface WorkScheduleRecord {
     fldyQIhjdUeQwtHMldD?: number // מחיר נהג כולל מע"מ
     fldT9IZTYlT4gCEnOK3?: number // רווח+ מע"מ
     fldhNoiFEkEgrkxff02?: string // הערות לנהג
-    flddNPbrzOCdgS36kx5?: any // שם נהג (Link)
-    fldx4hl8FwbxfkqXf0B?: any // סוג רכב (Link)
-    fldVy6L2DCboXUTkjBX?: any // שם לקוח (Link)
+    flddNPbrzOCdgS36kx5?: any // שם נהג (Link) - אובייקט או מערך
+    fldx4hl8FwbxfkqXf0B?: any // סוג רכב (Link) - אובייקט או מערך
+    fldVy6L2DCboXUTkjBX?: any // שם לקוח (Link) - אובייקט או מערך
     fldqStJV3KKIutTY9hW?: string // מספר רכב
   }
 }
 
-// הגדרת העמודות
+// פונקציית עזר להצגת שדות מקושרים (Link Fields)
+const renderLinkField = (value: any) => {
+  if (!value) return <span className="text-muted-foreground">-</span>
+  if (Array.isArray(value) && value.length > 0) {
+    return value[0]?.title || <span className="text-muted-foreground">-</span>
+  }
+  if (typeof value === 'object' && value.title) {
+    return value.title
+  }
+  return String(value)
+}
+
 export const columns: ColumnDef<WorkScheduleRecord>[] = [
   {
     id: "select",
     header: ({ table }) => (
       <Checkbox
-        checked={
-          table.getIsAllPageRowsSelected() ||
-          (table.getIsSomePageRowsSelected() && "indeterminate")
-        }
+        checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && "indeterminate")}
         onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
         aria-label="Select all"
         className="translate-y-[2px]"
@@ -101,10 +108,7 @@ export const columns: ColumnDef<WorkScheduleRecord>[] = [
     header: "שלח",
     cell: ({ row }) => (
       <div className="flex justify-center">
-        <Checkbox 
-          checked={row.original.fields.fldMv14lt0W7ZBkq1PH as boolean} 
-          disabled 
-        />
+        <Checkbox checked={row.original.fields.fldMv14lt0W7ZBkq1PH as boolean} disabled />
       </div>
     ),
   },
@@ -113,22 +117,14 @@ export const columns: ColumnDef<WorkScheduleRecord>[] = [
     header: "מאושר",
     cell: ({ row }) => (
       <div className="flex justify-center">
-        <Checkbox 
-          checked={row.original.fields.fldDOBGATSaTi5TxyHB as boolean} 
-          disabled 
-        />
+        <Checkbox checked={row.original.fields.fldDOBGATSaTi5TxyHB as boolean} disabled />
       </div>
     ),
   },
   {
     accessorKey: "fields.fldVy6L2DCboXUTkjBX", // שם לקוח
     header: "שם לקוח",
-    cell: ({ row }) => {
-      const val = row.original.fields.fldVy6L2DCboXUTkjBX
-      if (Array.isArray(val) && val[0]?.title) return <div className="text-right">{val[0].title}</div>
-      if (val?.title) return <div className="text-right">{val.title}</div>
-      return <div className="text-right text-muted-foreground">-</div>
-    },
+    cell: ({ row }) => <div className="text-right">{renderLinkField(row.original.fields.fldVy6L2DCboXUTkjBX)}</div>,
   },
   {
     accessorKey: "fields.fldLbXMREYfC8XVIghj", // התייצבות
@@ -152,22 +148,12 @@ export const columns: ColumnDef<WorkScheduleRecord>[] = [
   {
     accessorKey: "fields.fldx4hl8FwbxfkqXf0B", // סוג רכב
     header: "סוג רכב",
-    cell: ({ row }) => {
-      const val = row.original.fields.fldx4hl8FwbxfkqXf0B
-      if (Array.isArray(val) && val[0]?.title) return <div className="text-right">{val[0].title}</div>
-      if (val?.title) return <div className="text-right">{val.title}</div>
-      return <div className="text-right text-muted-foreground">-</div>
-    },
+    cell: ({ row }) => <div className="text-right">{renderLinkField(row.original.fields.fldx4hl8FwbxfkqXf0B)}</div>,
   },
   {
     accessorKey: "fields.flddNPbrzOCdgS36kx5", // שם נהג
     header: "שם נהג",
-    cell: ({ row }) => {
-      const val = row.original.fields.flddNPbrzOCdgS36kx5
-      if (Array.isArray(val) && val[0]?.title) return <div className="text-right">{val[0].title}</div>
-      if (val?.title) return <div className="text-right">{val.title}</div>
-      return <div className="text-right text-muted-foreground">-</div>
-    },
+    cell: ({ row }) => <div className="text-right font-medium">{renderLinkField(row.original.fields.flddNPbrzOCdgS36kx5)}</div>,
   },
   {
     accessorKey: "fields.fldxXnfHHQWwXY8dlEV", // מחיר לקוח+ מע"מ
@@ -203,10 +189,7 @@ export const columns: ColumnDef<WorkScheduleRecord>[] = [
     accessorKey: "fields.fldvNsQbfzMWTc7jakp", // תאריך
     header: ({ column }) => {
       return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
+        <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
           תאריך
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
@@ -229,6 +212,9 @@ export function DataGrid({ schema }: { schema: any }) {
   const [globalFilter, setGlobalFilter] = React.useState("")
   const [dateFilter, setDateFilter] = React.useState<Date | undefined>(undefined)
   const { toast } = useToast()
+  
+  const [editingRecord, setEditingRecord] = React.useState<WorkScheduleRecord | null>(null)
+  const [isEditOpen, setIsEditOpen] = React.useState(false)
 
   const fetchData = async () => {
     try {
@@ -249,16 +235,12 @@ export function DataGrid({ schema }: { schema: any }) {
   const handleDeleteSelected = async () => {
     const selectedIds = Object.keys(rowSelection)
     if (selectedIds.length === 0) return
-
     if (!confirm("האם אתה בטוח שברצונך למחוק את הרשומות המסומנות?")) return
-
     const recordsToDelete = table.getFilteredSelectedRowModel().rows.map(row => row.original.id)
-
     try {
       for (const id of recordsToDelete) {
         await fetch(`/api/work-schedule/${id}`, { method: "DELETE" })
       }
-      
       toast({ title: "נמחק בהצלחה", description: `${recordsToDelete.length} רשומות נמחקו.` })
       setRowSelection({})
       fetchData()
@@ -267,18 +249,21 @@ export function DataGrid({ schema }: { schema: any }) {
     }
   }
 
+  const handleRowClick = (record: WorkScheduleRecord) => {
+    setEditingRecord(record)
+    setIsEditOpen(true)
+  }
+
   const filteredData = React.useMemo(() => {
     let filtered = data
-
     if (dateFilter) {
       const dateStr = format(dateFilter, "yyyy-MM-dd")
       filtered = filtered.filter(item => {
-        const itemDate = item.fields.fldvNsQbfzMWTc7jakp // ID מעודכן לתאריך
+        const itemDate = item.fields.fldvNsQbfzMWTc7jakp
         if (!itemDate) return false
         return itemDate.startsWith(dateStr)
       })
     }
-
     if (globalFilter) {
       const lowerFilter = globalFilter.toLowerCase()
       filtered = filtered.filter((item) => {
@@ -290,7 +275,6 @@ export function DataGrid({ schema }: { schema: any }) {
         })
       })
     }
-
     return filtered
   }, [data, dateFilter, globalFilter])
 
@@ -315,31 +299,19 @@ export function DataGrid({ schema }: { schema: any }) {
 
   return (
     <div className="w-full space-y-4 p-4" dir="rtl">
+      {/* שורת הכותרת עם הפקדים */}
       <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-2 flex-1 max-w-sm">
-           <Search className="w-4 h-4 text-muted-foreground" />
-           <Input
-             placeholder="חיפוש..."
-             value={globalFilter}
-             onChange={(event) => setGlobalFilter(event.target.value)}
-             className="max-w-sm"
-           />
-        </div>
-
+        
+        {/* חלק ימני - כפתורים פעילים */}
         <div className="flex items-center gap-2">
-          {Object.keys(rowSelection).length > 0 && (
-            <Button variant="destructive" size="sm" onClick={handleDeleteSelected}>
-              <Trash2 className="h-4 w-4 ml-2" />
-              מחק ({Object.keys(rowSelection).length})
-            </Button>
-          )}
+          <NewRideDialog onRideCreated={fetchData} />
 
           <Popover>
             <PopoverTrigger asChild>
               <Button
                 variant={"outline"}
                 className={cn(
-                  "w-[240px] justify-start text-right font-normal",
+                  "w-[200px] justify-start text-right font-normal",
                   !dateFilter && "text-muted-foreground"
                 )}
               >
@@ -363,8 +335,26 @@ export function DataGrid({ schema }: { schema: any }) {
              </Button>
           )}
 
-          <NewRideDialog onRideCreated={fetchData} />
-          
+          {Object.keys(rowSelection).length > 0 && (
+            <Button variant="destructive" size="sm" onClick={handleDeleteSelected}>
+              <Trash2 className="h-4 w-4 ml-2" />
+              מחק ({Object.keys(rowSelection).length})
+            </Button>
+          )}
+        </div>
+
+        {/* חלק שמאלי - חיפוש ועמודות */}
+        <div className="flex items-center gap-2 flex-1 justify-end">
+           <div className="flex items-center gap-2 w-full max-w-sm">
+             <Search className="w-4 h-4 text-muted-foreground" />
+             <Input
+               placeholder="חיפוש..."
+               value={globalFilter}
+               onChange={(event) => setGlobalFilter(event.target.value)}
+               className="max-w-sm"
+             />
+           </div>
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="ml-auto">
@@ -372,45 +362,33 @@ export function DataGrid({ schema }: { schema: any }) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              {table
-                .getAllColumns()
-                .filter((column) => column.getCanHide())
-                .map((column) => {
-                  return (
-                    <DropdownMenuCheckboxItem
-                      key={column.id}
-                      className="capitalize"
-                      checked={column.getIsVisible()}
-                      onCheckedChange={(value) =>
-                        column.toggleVisibility(!!value)
-                      }
-                    >
-                      {column.id}
-                    </DropdownMenuCheckboxItem>
-                  )
-                })}
+              {table.getAllColumns().filter((column) => column.getCanHide()).map((column) => (
+                <DropdownMenuCheckboxItem
+                  key={column.id}
+                  className="capitalize"
+                  checked={column.getIsVisible()}
+                  onCheckedChange={(value) => column.toggleVisibility(!!value)}
+                >
+                  {column.id}
+                </DropdownMenuCheckboxItem>
+              ))}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
+
       </div>
       
+      {/* גוף הטבלה */}
       <div className="rounded-md border">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                  return (
-                    <TableHead key={header.id} className="text-right">
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                    </TableHead>
-                  )
-                })}
+                {headerGroup.headers.map((header) => (
+                  <TableHead key={header.id} className="text-right">
+                    {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                  </TableHead>
+                ))}
               </TableRow>
             ))}
           </TableHeader>
@@ -420,23 +398,19 @@ export function DataGrid({ schema }: { schema: any }) {
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => handleRowClick(row.original)}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id} className="text-right">
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center"
-                >
+                <TableCell colSpan={columns.length} className="h-24 text-center">
                   אין תוצאות.
                 </TableCell>
               </TableRow>
@@ -445,10 +419,10 @@ export function DataGrid({ schema }: { schema: any }) {
         </Table>
       </div>
       
+      {/* כפתורי דפדוף */}
       <div className="flex items-center justify-end space-x-2 py-4">
         <div className="flex-1 text-sm text-muted-foreground">
-          {table.getFilteredSelectedRowModel().rows.length} מתוך{" "}
-          {table.getFilteredRowModel().rows.length} שורות נבחרו.
+          {table.getFilteredSelectedRowModel().rows.length} מתוך {table.getFilteredRowModel().rows.length} שורות נבחרו.
         </div>
         <div className="space-x-2">
           <Button
@@ -469,6 +443,16 @@ export function DataGrid({ schema }: { schema: any }) {
           </Button>
         </div>
       </div>
+
+      <RecordEditDialog
+        record={editingRecord}
+        schema={schema}
+        open={isEditOpen}
+        onOpenChange={setIsEditOpen}
+        onSave={(updatedRecord) => {
+          setData(data.map((r) => (r.id === updatedRecord.id ? updatedRecord : r)))
+        }}
+      />
     </div>
   )
 }

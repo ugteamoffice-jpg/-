@@ -583,8 +583,7 @@ export function DataGrid({ schema }: { schema: any }) {
                 locale={he}
                 dir="rtl"
                 initialFocus
-                showOutsideDays={true} // מציג את הימים האפורים
-                fixedWeeks // מקבע את הגובה של החלון ל-6 שורות תמיד
+                showOutsideDays={false} // תיקון: לא מציג ימים מחודש אחר
               />
               <div className="border-t p-2">
                 <Button variant="ghost" className="w-full justify-center text-sm" onClick={handleTodayClick}>
@@ -618,7 +617,7 @@ export function DataGrid({ schema }: { schema: any }) {
         </div>
       </div>
       
-      {/* גוף הטבלה */}
+      {/* גוף הטבלה - גובה מחושב מראש */}
       <div className="rounded-md border h-[calc(100vh-220px)] w-full relative overflow-auto flex flex-col">
         <Table className="relative w-full h-full min-h-full" style={{ tableLayout: 'fixed' }}>
           <TableHeader className="sticky top-0 bg-background z-10 shadow-sm">
@@ -699,7 +698,7 @@ export function DataGrid({ schema }: { schema: any }) {
             </TableRow>
           </TableBody>
 
-          {/* שורת סיכום דביקה בתחתית עם רקע לבן שקוף */}
+          {/* שורת סיכום דביקה בתחתית עם רקע לבן */}
           <tfoot className="sticky bottom-0 bg-background font-bold border-t z-20 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
              {table.getFooterGroups().map((footerGroup) => (
                 <tr key={footerGroup.id}>

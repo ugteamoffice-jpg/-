@@ -415,6 +415,7 @@ export function DataGrid({ schema }: { schema: any }) {
     fetchData()
   }, [])
 
+  // טעינת הגדרות
   React.useEffect(() => {
     const savedSettings = localStorage.getItem(STORAGE_KEY)
     const defaultOrder = columns.map(c => c.id as string)
@@ -442,6 +443,7 @@ export function DataGrid({ schema }: { schema: any }) {
     }
   }, [])
 
+  // שמירת הגדרות
   React.useEffect(() => {
     if (columnOrder.length > 0) {
       const settingsToSave = {
@@ -557,11 +559,10 @@ export function DataGrid({ schema }: { schema: any }) {
   }, [table.getFilteredRowModel().rows])
 
   return (
-    // שינוי 1: גובה קבוע למיכל הראשי
-    <div className="w-full h-[calc(100vh-2rem)] flex flex-col space-y-4 p-4" dir="rtl">
+    <div className="w-full flex flex-col space-y-4 p-4" dir="rtl">
       
       {/* שורת הכותרת */}
-      <div className="flex items-center justify-between gap-4 flex-none"> {/* flex-none שלא יתכווץ */}
+      <div className="flex items-center justify-between gap-4">
         
         {/* צד ימין */}
         <div className="flex items-center gap-2">
@@ -615,8 +616,8 @@ export function DataGrid({ schema }: { schema: any }) {
         </div>
       </div>
       
-      {/* גוף הטבלה - שינוי 2: flex-1 כדי למלא את הגובה */}
-      <div className="rounded-md border flex-1 relative overflow-auto">
+      {/* גוף הטבלה - הגובה מחושב כאן כדי למלא את המסך */}
+      <div className="rounded-md border h-[calc(100vh-220px)] relative overflow-auto">
         <Table className="relative w-full" style={{ tableLayout: 'fixed' }}>
           <TableHeader className="sticky top-0 bg-background z-10 shadow-sm">
             {table.getHeaderGroups().map((headerGroup) => (
@@ -696,7 +697,7 @@ export function DataGrid({ schema }: { schema: any }) {
                       const colId = header.column.id;
                       let content = null;
 
-                      // הורדתי את ה"סה"כ:"
+                      // לוגיקה להצגת סיכום לפי עמודה (ללא מילה "סה"כ")
                       if (colId === 'price_client_plus_vat') content = totals.price_client_plus_vat.toFixed(2)
                       if (colId === 'price_client_full') content = totals.price_client_full.toFixed(2)
                       if (colId === 'price_driver_plus_vat') content = totals.price_driver_plus_vat.toFixed(2)

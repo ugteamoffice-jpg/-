@@ -559,8 +559,7 @@ export function DataGrid({ schema }: { schema: any }) {
   }, [table.getFilteredRowModel().rows])
 
   return (
-    // זה הטריק: גובה מחושב שתופס את כל המסך פחות הכותרות
-    <div className="w-full h-[calc(100vh-140px)] flex flex-col space-y-4 p-4" dir="rtl">
+    <div className="w-full flex flex-col space-y-4 p-4" dir="rtl">
       
       {/* שורת הכותרת */}
       <div className="flex items-center justify-between gap-4 flex-none">
@@ -617,8 +616,8 @@ export function DataGrid({ schema }: { schema: any }) {
         </div>
       </div>
       
-      {/* גוף הטבלה: flex-1 כדי למלא את הגובה שקבענו למעלה */}
-      <div className="rounded-md border flex-1 relative overflow-auto flex flex-col">
+      {/* גוף הטבלה - הגובה מוגדר כאן ישירות על המיכל של הטבלה */}
+      <div className="rounded-md border h-[calc(100vh-220px)] w-full relative overflow-auto">
         <Table className="relative w-full" style={{ tableLayout: 'fixed' }}>
           <TableHeader className="sticky top-0 bg-background z-10 shadow-sm">
             {table.getHeaderGroups().map((headerGroup) => (
@@ -698,6 +697,7 @@ export function DataGrid({ schema }: { schema: any }) {
                       const colId = header.column.id;
                       let content = null;
 
+                      // ללא טקסט "סה"כ"
                       if (colId === 'price_client_plus_vat') content = totals.price_client_plus_vat.toFixed(2)
                       if (colId === 'price_client_full') content = totals.price_client_full.toFixed(2)
                       if (colId === 'price_driver_plus_vat') content = totals.price_driver_plus_vat.toFixed(2)

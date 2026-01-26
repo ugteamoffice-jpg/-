@@ -69,7 +69,7 @@ export interface WorkScheduleRecord {
     flddNPbrzOCdgS36kx5?: any 
     fldx4hl8FwbxfkqXf0B?: any 
     fldVy6L2DCboXUTkjBX?: any 
-    fldqStJV3KKIutTY9hW?: string 
+    fldqStJV3KKIutTY9hW?: string // מספר רכב
   }
 }
 
@@ -84,7 +84,7 @@ const renderLinkField = (value: any) => {
   return String(value)
 }
 
-// הגדרת העמודות
+// הגדרת העמודות - מעודכן לפי הסדר החדש שביקשת
 export const columns: ColumnDef<WorkScheduleRecord>[] = [
   {
     id: "select",
@@ -109,7 +109,7 @@ export const columns: ColumnDef<WorkScheduleRecord>[] = [
       </div>
     ),
     enableSorting: false,
-    enableHiding: false, // עמודת בחירה אי אפשר להסתיר
+    enableHiding: false, 
     size: 50,
     minSize: 50,
     enableResizing: false,
@@ -190,6 +190,25 @@ export const columns: ColumnDef<WorkScheduleRecord>[] = [
     size: 120,
     minSize: 80,
   },
+  // --- העמודה החדשה ---
+  {
+    accessorKey: "fields.fldqStJV3KKIutTY9hW",
+    id: "vehicle_number",
+    header: "מספר רכב",
+    cell: ({ row }) => <div className="text-right truncate">{row.original.fields.fldqStJV3KKIutTY9hW || ""}</div>,
+    size: 100,
+    minSize: 80,
+  },
+  // --- הערות לנהג (הוזז לכאן) ---
+  {
+    accessorKey: "fields.fldhNoiFEkEgrkxff02",
+    id: "notes_driver",
+    header: "הערות לנהג",
+    cell: ({ row }) => <div className="text-right truncate">{row.original.fields.fldhNoiFEkEgrkxff02 || ""}</div>,
+    size: 150,
+    minSize: 110,
+  },
+  // --- עמודות מחיר (הוזזו לסוף) ---
   {
     accessorKey: "fields.fldxXnfHHQWwXY8dlEV",
     id: "price_client_plus_vat",
@@ -230,14 +249,6 @@ export const columns: ColumnDef<WorkScheduleRecord>[] = [
     size: 100,
     minSize: 100,
   },
-  {
-    accessorKey: "fields.fldhNoiFEkEgrkxff02",
-    id: "notes_driver",
-    header: "הערות לנהג",
-    cell: ({ row }) => <div className="text-right truncate">{row.original.fields.fldhNoiFEkEgrkxff02 || ""}</div>,
-    size: 150,
-    minSize: 110,
-  },
 ]
 
 // --- קומפוננטת דיאלוג לסידור והסתרת עמודות ---
@@ -245,7 +256,7 @@ function ColumnReorderDialog({
   open, 
   onOpenChange, 
   columnOrder, 
-  columnVisibility, // קבלת מצב הנראות הנוכחי
+  columnVisibility, 
   onSave 
 }: { 
   open: boolean; 
@@ -316,6 +327,8 @@ function ColumnReorderDialog({
           <DialogTitle>ניהול עמודות</DialogTitle>
           <DialogDescription>
             סמן עמודות להצגה, וגרור אותן לשינוי הסדר.
+            <br />
+            <strong>העליון ברשימה = הראשון מימין בטבלה.</strong>
           </DialogDescription>
         </DialogHeader>
         
@@ -325,7 +338,6 @@ function ColumnReorderDialog({
               if (colId === 'select') return null;
               if (!columns.find(c => c.id === colId)) return null;
 
-              // בדיקה האם העמודה גלויה (ברירת מחדל true)
               const isVisible = internalVisibility[colId] !== false
 
               return (
@@ -341,7 +353,6 @@ function ColumnReorderDialog({
                 >
                   <GripVertical className="h-4 w-4 text-muted-foreground" />
                   
-                  {/* צ'קבוקס להסתרה/הצגה */}
                   <Checkbox 
                     checked={isVisible}
                     onCheckedChange={(checked) => toggleVisibility(colId, checked as boolean)}
@@ -373,10 +384,7 @@ export function DataGrid({ schema }: { schema: any }) {
   const [data, setData] = React.useState<WorkScheduleRecord[]>([])
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
-  
-  // כאן אנחנו מנהלים את הנראות של העמודות
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
-  
   const [rowSelection, setRowSelection] = React.useState({})
   const [globalFilter, setGlobalFilter] = React.useState("")
   const [dateFilter, setDateFilter] = React.useState<Date>(new Date())
@@ -391,8 +399,8 @@ export function DataGrid({ schema }: { schema: any }) {
   const [isCalendarOpen, setIsCalendarOpen] = React.useState(false)
   const [isResizing, setIsResizing] = React.useState(false)
 
-  // שומרים גם את ה-visibility באותו מפתח
-  const STORAGE_KEY = "workScheduleGridSettings_v2" 
+  // שינוי מפתח הזיכרון כדי לאפס הגדרות ישנות
+  const STORAGE_KEY = "workScheduleGridSettings_v3" 
 
   const fetchData = async () => {
     try {
@@ -428,7 +436,6 @@ export function DataGrid({ schema }: { schema: any }) {
         }
         
         if (parsed.columnSizing) setColumnSizing(parsed.columnSizing)
-        // טעינת מצב ההסתרה
         if (parsed.columnVisibility) setColumnVisibility(parsed.columnVisibility)
 
       } catch (e) {
@@ -439,26 +446,24 @@ export function DataGrid({ schema }: { schema: any }) {
     }
   }, [])
 
-  // שמירת הגדרות בעת שינוי (כולל נראות)
+  // שמירת הגדרות בעת שינוי
   React.useEffect(() => {
     if (columnOrder.length > 0) {
       const settingsToSave = {
         columnOrder,
         columnSizing,
-        columnVisibility // שמירת המצב
+        columnVisibility
       }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(settingsToSave))
     }
   }, [columnOrder, columnSizing, columnVisibility])
 
-  // פונקציית שמירה מהדיאלוג (מקבלת גם סדר וגם נראות)
   const handleSettingsSave = (newOrder: string[], newVisibility: VisibilityState) => {
     const finalOrder = ['select', ...newOrder.filter(id => id !== 'select')]
     
     setColumnOrder(finalOrder)
     setColumnVisibility(newVisibility)
     
-    // שמירה ידנית מיידית ליתר ביטחון
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
       columnOrder: finalOrder,
       columnSizing,
@@ -533,14 +538,14 @@ export function DataGrid({ schema }: { schema: any }) {
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
-    onColumnVisibilityChange: setColumnVisibility, // חיבור ה-handler של הטבלה
+    onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
     onColumnOrderChange: setColumnOrder,
     onColumnSizingChange: setColumnSizing,
     state: {
       sorting,
       columnFilters,
-      columnVisibility, // העברת ה-State לטבלה
+      columnVisibility,
       rowSelection,
       columnOrder,
       columnSizing,
@@ -591,7 +596,6 @@ export function DataGrid({ schema }: { schema: any }) {
              />
            </div>
 
-           {/* כפתור ניהול עמודות */}
            <Button variant="outline" size="icon" onClick={() => setIsReorderOpen(true)} title="ניהול עמודות">
             <Settings2 className="h-4 w-4" />
           </Button>
@@ -696,7 +700,7 @@ export function DataGrid({ schema }: { schema: any }) {
         open={isReorderOpen} 
         onOpenChange={setIsReorderOpen}
         columnOrder={columnOrder}
-        columnVisibility={columnVisibility} // העברת המצב הנוכחי לדיאלוג
+        columnVisibility={columnVisibility} 
         onSave={handleSettingsSave}
       />
     </div>

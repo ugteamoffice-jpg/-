@@ -553,26 +553,19 @@ export function DataGrid({ schema }: { schema: any }) {
       price_client_full: rows.reduce((sum, row) => sum + (Number(row.original.fields.fldT7QLSKmSrjIHarDb) || 0), 0),
       price_driver_plus_vat: rows.reduce((sum, row) => sum + (Number(row.original.fields.fldSNuxbM8oJfrQ3a9x) || 0), 0),
       price_driver_full: rows.reduce((sum, row) => sum + (Number(row.original.fields.fldyQIhjdUeQwtHMldD) || 0), 0),
-      profit: rows.reduce((sum, row) => sum + (Number(row.original.fields.fldT9IZTYlT4gCEnOK3) || 0), 0),
+      profit_plus_vat: rows.reduce((sum, row) => sum + (Number(row.original.fields.fldT9IZTYlT4gCEnOK3) || 0), 0),
+      // חישוב רווח כולל = לקוח כולל - נהג כולל
+      profit_full: rows.reduce((sum, row) => sum + ((Number(row.original.fields.fldT7QLSKmSrjIHarDb) || 0) - (Number(row.original.fields.fldyQIhjdUeQwtHMldD) || 0)), 0),
     }
   }, [table.getFilteredRowModel().rows])
 
   return (
-    <div className="w-full flex flex-col space-y-4 p-4" dir="rtl">
+    <div className="w-full h-full flex flex-col space-y-4 p-4" dir="rtl">
       
       {/* שורת הכותרת */}
       <div className="flex items-center justify-between gap-4 flex-none">
         
-        {/* === צד שמאל החדש: סיכומים === */}
-        <div className="flex items-center gap-4 text-sm font-medium bg-muted/30 p-2 rounded-md border">
-           <div>סה"כ לקוח: <span className="font-bold">{totals.price_client_plus_vat.toLocaleString()}</span></div>
-           <div className="h-4 w-[1px] bg-border mx-1"></div>
-           <div>סה"כ נהג: <span className="font-bold">{totals.price_driver_plus_vat.toLocaleString()}</span></div>
-           <div className="h-4 w-[1px] bg-border mx-1"></div>
-           <div className="text-green-600">רווח: <span className="font-bold">{totals.profit.toLocaleString()}</span></div>
-        </div>
-
-        {/* צד ימין: כפתורים וחיפוש */}
+        {/* צד ימין (RTL Start) - כפתורים וכלים */}
         <div className="flex items-center gap-2">
           
           <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
@@ -591,7 +584,7 @@ export function DataGrid({ schema }: { schema: any }) {
                 locale={he}
                 dir="rtl"
                 initialFocus
-                showOutsideDays={true} 
+                showOutsideDays={true}
                 fixedWeeks 
               />
               <div className="border-t p-2">
@@ -624,11 +617,34 @@ export function DataGrid({ schema }: { schema: any }) {
             </Button>
           )}
         </div>
+
+        {/* צד שמאל (RTL End) - סיכומים */}
+        <div className="flex items-center gap-4 text-sm bg-muted/20 p-2 px-4 rounded-md border shadow-sm">
+           <div className="flex flex-col items-end">
+              <span>סה"כ ללקוח+ מע"מ: <span className="font-bold">{totals.price_client_plus_vat.toLocaleString()}</span></span>
+              <span>סה"כ ללקוח כולל מע"מ: <span className="font-bold">{totals.price_client_full.toLocaleString()}</span></span>
+           </div>
+           
+           <div className="h-8 w-[1px] bg-border"></div>
+
+           <div className="flex flex-col items-end">
+              <span>סה"כ לנהג+ מע"מ: <span className="font-bold">{totals.price_driver_plus_vat.toLocaleString()}</span></span>
+              <span>סה"כ לנהג כולל מע"מ: <span className="font-bold">{totals.price_driver_full.toLocaleString()}</span></span>
+           </div>
+
+           <div className="h-8 w-[1px] bg-border"></div>
+
+           <div className="flex flex-col items-end text-green-600 font-medium">
+              <span>רווח+ מע"מ: <span className="font-bold">{totals.profit_plus_vat.toLocaleString()}</span></span>
+              <span>רווח כולל מע"מ: <span className="font-bold">{totals.profit_full.toLocaleString()}</span></span>
+           </div>
+        </div>
+
       </div>
       
-      {/* גוף הטבלה - מחושב כדי למלא את המסך */}
-      <div className="rounded-md border h-[calc(100vh-140px)] w-full relative overflow-auto flex flex-col">
-        <Table className="relative w-full h-full min-h-full" style={{ tableLayout: 'fixed' }}>
+      {/* גוף הטבלה */}
+      <div className="rounded-md border h-[calc(100vh-140px)] w-full relative overflow-auto">
+        <Table className="relative w-full" style={{ tableLayout: 'fixed' }}>
           <TableHeader className="sticky top-0 bg-background z-10 shadow-sm">
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
@@ -680,7 +696,7 @@ export function DataGrid({ schema }: { schema: any }) {
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
-                  className="cursor-pointer hover:bg-muted/50 h-fit"
+                  className="cursor-pointer hover:bg-muted/50"
                   onClick={() => handleRowClick(row.original)}
                 >
                   {row.getVisibleCells().map((cell) => (

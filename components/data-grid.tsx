@@ -583,8 +583,8 @@ export function DataGrid({ schema }: { schema: any }) {
                 locale={he}
                 dir="rtl"
                 initialFocus
-                showOutsideDays={true} // ימים אפורים
-                fixedWeeks // גובה קבוע לחלון הלוח שנה
+                showOutsideDays={true} 
+                fixedWeeks // מונע קפיצות גובה בחלון הלוח שנה
               />
               <div className="border-t p-2">
                 <Button variant="ghost" className="w-full justify-center text-sm" onClick={handleTodayClick}>
@@ -618,7 +618,7 @@ export function DataGrid({ schema }: { schema: any }) {
         </div>
       </div>
       
-      {/* גוף הטבלה - גובה מחושב מראש */}
+      {/* גוף הטבלה - גובה מחושב מראש כדי שיתפוס את כל המסך */}
       <div className="rounded-md border h-[calc(100vh-220px)] w-full relative overflow-auto flex flex-col">
         <Table className="relative w-full h-full min-h-full" style={{ tableLayout: 'fixed' }}>
           <TableHeader className="sticky top-0 bg-background z-10 shadow-sm">
@@ -690,22 +690,16 @@ export function DataGrid({ schema }: { schema: any }) {
               </TableRow>
             )}
             
-            {/* שורת מילוי קריטית - דוחפת את ה-footer למטה */}
+            {/* שורת מילוי חכמה - Spacer Row - דוחפת את הסיכום למטה */}
             <TableRow className="flex-1 hover:bg-transparent border-none" style={{ height: '100%' }}>
                 {table.getAllColumns().map((col) => {
                    if (columnVisibility[col.id] === false) return null;
                    return <TableCell key={col.id} className="p-0 border-l border-b-0" />
                 })}
             </TableRow>
-            
-            {/* שורת דמה - Dummy Row לשמירת מקום בסוף הגלילה */}
-            <TableRow className="h-10 bg-transparent border-none hover:bg-transparent">
-               <TableCell colSpan={columns.length} className="p-0" />
-            </TableRow>
-
           </TableBody>
 
-          {/* שורת סיכום דביקה בתחתית עם רקע לבן וקו עליון מודגש */}
+          {/* שורת סיכום דביקה בתחתית עם רקע לבן והפרדה ברורה */}
           <tfoot className="sticky bottom-0 bg-background font-bold border-t-2 z-20 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
              {table.getFooterGroups().map((footerGroup) => (
                 <tr key={footerGroup.id}>

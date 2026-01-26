@@ -74,7 +74,6 @@ const renderLinkField = (value: any) => {
   return String(value)
 }
 
-// הגדרת עמודות
 export const columns: ColumnDef<WorkScheduleRecord>[] = [
   {
     id: "select",
@@ -239,13 +238,13 @@ export function DataGrid({ schema }: { schema: any }) {
   const [globalFilter, setGlobalFilter] = React.useState("")
   const [dateFilter, setDateFilter] = React.useState<Date>(new Date())
   
-  // ניהול סדר עמודות וגדלים
+  // States for persistence and interactions
   const [columnOrder, setColumnOrder] = React.useState<ColumnOrderState>([])
   const [columnSizing, setColumnSizing] = React.useState<ColumnSizingState>({})
   
-  // משתנים למצב גרירה
+  // State for drag & drop
   const [isResizing, setIsResizing] = React.useState(false)
-  const [draggingColumnId, setDraggingColumnId] = React.useState<string | null>(null)
+  const [draggingColumnId, setDraggingColumnId] = React.useState<string | null>(null) // זיהוי עמודה נגררת
 
   const { toast } = useToast()
   
@@ -377,6 +376,24 @@ export function DataGrid({ schema }: { schema: any }) {
     },
   })
 
+  // פונקציית הזזה שמסתמכת על State ולא על Event Data
+  const moveColumn = (draggedId: string, targetId: string) => {
+    // הגנה מפני מצב שבו הסדר טרם נטען
+    let currentOrder = [...columnOrder];
+    if (currentOrder.length === 0) {
+        currentOrder = columns.map(c => c.id as string);
+    }
+
+    const draggedIndex = currentOrder.indexOf(draggedId)
+    const targetIndex = currentOrder.indexOf(targetId)
+    
+    if (draggedIndex !== -1 && targetIndex !== -1 && draggedIndex !== targetIndex) {
+      currentOrder.splice(draggedIndex, 1)
+      currentOrder.splice(targetIndex, 0, draggedId)
+      setColumnOrder(currentOrder)
+    }
+  }
+
   return (
     <div className="w-full h-full flex flex-col space-y-4 p-4" dir="rtl">
       {/* שורת הכותרת */}
@@ -447,67 +464,57 @@ export function DataGrid({ schema }: { schema: any }) {
                     colSpan={header.colSpan}
                     className={cn(
                       "text-right relative border-l select-none group transition-colors",
-                      // שינוי סמן גרירה
                       !isResizing && header.column.id !== "select" && "cursor-grab active:cursor-grabbing",
-                      // סימון ויזואלי בזמן גרירה
                       draggingColumnId === header.column.id && "opacity-50 bg-muted border-dashed border-2 border-primary"
                     )}
                     style={{ width: header.getSize() }}
                     
-                    // === גרירת עמודות: טיפול באירועים ===
+                    // === גרירת עמודות: השיטה הבטוחה ===
                     draggable={!isResizing && header.column.id !== "select"} 
                     onDragStart={(e) => {
+                       // שמירה ב-State של React - הכי אמין
                        setDraggingColumnId(header.column.id)
                        e.dataTransfer.effectAllowed = "move"
-                       // הוספת ID לנתונים כדי לזהות בצד השני
+                       // שמירה גם בדפדפן כגיבוי
                        e.dataTransfer.setData("text/plain", header.column.id)
                        
-                       // יצירת תמונת גרירה שקופה (אופציונלי, כדי שלא יסתיר את העכבר)
                        const img = new Image();
                        img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
                        e.dataTransfer.setDragImage(img, 0, 0);
                     }}
                     onDragOver={(e) => {
-                       // חובה לבטל את ברירת המחדל כדי לאפשר Drop
-                       e.preventDefault() 
+                       e.preventDefault() // חובה לאפשר Drop
                     }}
                     onDrop={(e) => {
                        e.preventDefault()
-                       const draggedId = e.dataTransfer.getData("text/plain")
+                       
+                       // כאן התיקון: שימוש ב-draggingColumnId מה-State
+                       const draggedId = draggingColumnId;
                        const targetId = header.column.id
                        
+                       // איפוס
                        setDraggingColumnId(null)
 
-                       if (draggedId && targetId && draggedId !== targetId && draggedId !== "select" && targetId !== "select") {
-                         // עדכון הסדר במערך
-                         const newOrder = [...columnOrder]
-                         const fromIndex = newOrder.indexOf(draggedId)
-                         const toIndex = newOrder.indexOf(targetId)
-                         
-                         if (fromIndex !== -1 && toIndex !== -1) {
-                           newOrder.splice(fromIndex, 1)
-                           newOrder.splice(toIndex, 0, draggedId)
-                           setColumnOrder(newOrder)
-                         }
+                       if (draggedId && targetId && draggedId !== targetId && targetId !== "select" && draggedId !== "select") {
+                          moveColumn(draggedId, targetId)
                        }
                     }}
                   >
                     {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                     
-                    {/* ידית שינוי גודל עדינה (4px) */}
+                    {/* ידית שינוי גודל */}
                     {header.column.getCanResize() && (
                       <div
                         onMouseDown={(e) => {
                           e.stopPropagation();
                           e.preventDefault();
-                          setIsResizing(true); // נועל את הגרירה
+                          setIsResizing(true); 
 
                           const startX = e.clientX;
                           const startWidth = header.getSize();
                           
                           const onMouseMove = (moveEvent: MouseEvent) => {
                             const currentX = moveEvent.clientX;
-                            // RTL: דלתא הפוכה (שמאלה = חיובי)
                             const delta = startX - currentX; 
                             const minSize = header.column.columnDef.minSize || 50;
                             const newWidth = Math.max(minSize, startWidth + delta); 
@@ -519,7 +526,7 @@ export function DataGrid({ schema }: { schema: any }) {
                           };
 
                           const onMouseUp = () => {
-                            setIsResizing(false); // משחרר את הנעילה
+                            setIsResizing(false); 
                             document.removeEventListener('mousemove', onMouseMove);
                             document.removeEventListener('mouseup', onMouseUp);
                           };

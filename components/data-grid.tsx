@@ -559,7 +559,7 @@ export function DataGrid({ schema }: { schema: any }) {
   }, [table.getFilteredRowModel().rows])
 
   return (
-    // הקונטיינר הראשי - גובה קבוע שמתחשב בגודל המסך (פחות padding)
+    // הקונטיינר הראשי - גובה קבוע שמתחשב בגודל המסך
     <div className="w-full h-[calc(100vh-2rem)] flex flex-col space-y-4 p-4" dir="rtl">
       
       {/* שורת הכותרת */}
@@ -583,7 +583,8 @@ export function DataGrid({ schema }: { schema: any }) {
                 locale={he}
                 dir="rtl"
                 initialFocus
-                showOutsideDays={false}
+                showOutsideDays={true}
+                fixedWeeks 
               />
               <div className="border-t p-2">
                 <Button variant="ghost" className="w-full justify-center text-sm" onClick={handleTodayClick}>
@@ -617,33 +618,36 @@ export function DataGrid({ schema }: { schema: any }) {
         </div>
 
         {/* צד שמאל (RTL End) - מלבן סיכומים מסודר */}
-        <div className="flex gap-6 text-sm bg-muted/20 p-2 px-4 rounded-md border shadow-sm text-right">
-           {/* עמודת רווח */}
-           <div className="flex flex-col gap-1 items-end justify-center text-green-600 font-bold">
-              <span>רווח+ מע"מ: {totals.profit_plus_vat.toLocaleString()}</span>
-              <span>רווח כולל מע"מ: {totals.profit_full.toLocaleString()}</span>
+        {/* שינוי: ה-DIV הראשון הוא הלקוח (ימין), השני נהג (אמצע), השלישי רווח (שמאל) */}
+        {/* הטקסט מיושר לימין (items-start) */}
+        <div className="flex gap-6 text-sm bg-muted/20 p-2 px-4 rounded-md border shadow-sm">
+           
+           {/* עמודת לקוח */}
+           <div className="flex flex-col gap-1 items-start justify-center">
+              <span>סה"כ ללקוח+ מע"מ: <span className="font-bold">{totals.price_client_plus_vat.toLocaleString()}</span></span>
+              <span>סה"כ ללקוח כולל מע"מ: <span className="font-bold">{totals.price_client_full.toLocaleString()}</span></span>
            </div>
 
            <div className="w-[1px] bg-border my-1"></div>
 
            {/* עמודת נהג */}
-           <div className="flex flex-col gap-1 items-end justify-center">
+           <div className="flex flex-col gap-1 items-start justify-center">
               <span>סה"כ לנהג+ מע"מ: <span className="font-bold">{totals.price_driver_plus_vat.toLocaleString()}</span></span>
               <span>סה"כ לנהג כולל מע"מ: <span className="font-bold">{totals.price_driver_full.toLocaleString()}</span></span>
            </div>
 
            <div className="w-[1px] bg-border my-1"></div>
 
-           {/* עמודת לקוח */}
-           <div className="flex flex-col gap-1 items-end justify-center">
-              <span>סה"כ ללקוח+ מע"מ: <span className="font-bold">{totals.price_client_plus_vat.toLocaleString()}</span></span>
-              <span>סה"כ ללקוח כולל מע"מ: <span className="font-bold">{totals.price_client_full.toLocaleString()}</span></span>
+           {/* עמודת רווח */}
+           <div className="flex flex-col gap-1 items-start justify-center text-green-600 font-medium">
+              <span>רווח+ מע"מ: <span className="font-bold">{totals.profit_plus_vat.toLocaleString()}</span></span>
+              <span>רווח כולל מע"מ: <span className="font-bold">{totals.profit_full.toLocaleString()}</span></span>
            </div>
         </div>
 
       </div>
       
-      {/* גוף הטבלה - מוגדר למלא את השטח הנותר ללא גלילה מיותרת */}
+      {/* גוף הטבלה */}
       <div className="rounded-md border flex-1 overflow-auto min-h-0">
         <Table className="relative w-full" style={{ tableLayout: 'fixed' }}>
           <TableHeader className="sticky top-0 bg-background z-10 shadow-sm">

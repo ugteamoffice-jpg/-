@@ -381,7 +381,12 @@ export function DataGrid({ schema }: { schema: any }) {
   const [data, setData] = React.useState<WorkScheduleRecord[]>([])
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
-  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
+  
+  // הסתרת עמודת רווח כברירת מחדל
+  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({
+    profit: false 
+  })
+  
   const [rowSelection, setRowSelection] = React.useState({})
   const [globalFilter, setGlobalFilter] = React.useState("")
   const [dateFilter, setDateFilter] = React.useState<Date>(new Date())
@@ -396,7 +401,8 @@ export function DataGrid({ schema }: { schema: any }) {
   const [isCalendarOpen, setIsCalendarOpen] = React.useState(false)
   const [isResizing, setIsResizing] = React.useState(false)
 
-  const STORAGE_KEY = "workScheduleGridSettings_v3" 
+  // שיניתי ל-v5 כדי לאפס הגדרות ישנות ולהסתיר את הרווח
+  const STORAGE_KEY = "workScheduleGridSettings_v5" 
 
   const fetchData = async () => {
     try {
@@ -559,7 +565,6 @@ export function DataGrid({ schema }: { schema: any }) {
   }, [table.getFilteredRowModel().rows])
 
   return (
-    // הקונטיינר הראשי - גובה קבוע שמתחשב בגודל המסך
     <div className="w-full h-[calc(100vh-2rem)] flex flex-col space-y-4 p-4" dir="rtl">
       
       {/* שורת הכותרת */}
@@ -617,31 +622,29 @@ export function DataGrid({ schema }: { schema: any }) {
           )}
         </div>
 
-        {/* צד שמאל (RTL End) - מלבן סיכומים מסודר */}
-        {/* שינוי: ה-DIV הראשון הוא הלקוח (ימין), השני נהג (אמצע), השלישי רווח (שמאל) */}
-        {/* הטקסט מיושר לימין (items-start) */}
+        {/* צד שמאל (RTL End) - מלבן סיכומים */}
         <div className="flex gap-6 text-sm bg-muted/20 p-2 px-4 rounded-md border shadow-sm">
            
            {/* עמודת לקוח */}
            <div className="flex flex-col gap-1 items-start justify-center">
-              <span>סה"כ ללקוח+ מע"מ: <span className="font-bold">{totals.price_client_plus_vat.toLocaleString()}</span></span>
-              <span>סה"כ ללקוח כולל מע"מ: <span className="font-bold">{totals.price_client_full.toLocaleString()}</span></span>
+              <span>סה"כ ללקוח+ מע"מ: <span className="font-bold">{totals.price_client_plus_vat.toLocaleString()} ש"ח</span></span>
+              <span>סה"כ ללקוח כולל מע"מ: <span className="font-bold">{totals.price_client_full.toLocaleString()} ש"ח</span></span>
            </div>
 
            <div className="w-[1px] bg-border my-1"></div>
 
            {/* עמודת נהג */}
            <div className="flex flex-col gap-1 items-start justify-center">
-              <span>סה"כ לנהג+ מע"מ: <span className="font-bold">{totals.price_driver_plus_vat.toLocaleString()}</span></span>
-              <span>סה"כ לנהג כולל מע"מ: <span className="font-bold">{totals.price_driver_full.toLocaleString()}</span></span>
+              <span>סה"כ לנהג+ מע"מ: <span className="font-bold">{totals.price_driver_plus_vat.toLocaleString()} ש"ח</span></span>
+              <span>סה"כ לנהג כולל מע"מ: <span className="font-bold">{totals.price_driver_full.toLocaleString()} ש"ח</span></span>
            </div>
 
            <div className="w-[1px] bg-border my-1"></div>
 
            {/* עמודת רווח */}
            <div className="flex flex-col gap-1 items-start justify-center text-green-600 font-medium">
-              <span>רווח+ מע"מ: <span className="font-bold">{totals.profit_plus_vat.toLocaleString()}</span></span>
-              <span>רווח כולל מע"מ: <span className="font-bold">{totals.profit_full.toLocaleString()}</span></span>
+              <span>רווח+ מע"מ: <span className="font-bold">{totals.profit_plus_vat.toLocaleString()} ש"ח</span></span>
+              <span>רווח כולל מע"מ: <span className="font-bold">{totals.profit_full.toLocaleString()} ש"ח</span></span>
            </div>
         </div>
 

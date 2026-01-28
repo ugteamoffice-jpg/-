@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Plus, Calendar as CalendarIcon, Loader2, Save, Upload } from "lucide-react"
+import { Plus, Calendar as CalendarIcon, Loader2, Save, Upload, Clock } from "lucide-react"
 import { format } from "date-fns"
 import { he } from "date-fns/locale"
 
@@ -40,19 +40,18 @@ export function NewRideDialog({ onRideCreated }: { onRideCreated: () => void }) 
 
   // State
   const [date, setDate] = React.useState<Date>(new Date())
-  const [vatRate, setVatRate] = React.useState("18") // ברירת מחדל 18%
+  const [vatRate, setVatRate] = React.useState("18") 
 
-  // שדות כלליים
+  // שדות הטופס
   const [formData, setFormData] = React.useState({
     customer: "",
     description: "",
-    pickup: "",
-    dropoff: "",
+    pickupTime: "", // התייצבות (שעה)
+    dropoffTime: "", // חזור (שעה)
     vehicleType: "",
     driver: "",
     vehicleNumber: "",
     notesDriver: "",
-    orderForm: null as File | null, // קובץ
     
     // שדות נוספים
     orderingName: "",
@@ -60,7 +59,10 @@ export function NewRideDialog({ onRideCreated }: { onRideCreated: () => void }) 
     idNumber: "",
   })
 
-  // מחירים - שומרים כ-String כדי לאפשר עריכה נוחה
+  // ניהול קובץ בנפרד
+  const [file, setFile] = React.useState<File | null>(null)
+
+  // מחירים
   const [prices, setPrices] = React.useState({
     clientExcl: "",
     clientIncl: "",
@@ -74,31 +76,16 @@ export function NewRideDialog({ onRideCreated }: { onRideCreated: () => void }) 
     const rate = 1 + (parseFloat(vatRate) / 100)
 
     if (isNaN(numVal)) {
-      // אם מוחקים את המספר, מנקים את הצד השני
-      setPrices(prev => ({
-        ...prev,
-        [`${field}Excl`]: "",
-        [`${field}Incl`]: ""
-      }))
+      setPrices(prev => ({ ...prev, [`${field}Excl`]: "", [`${field}Incl`]: "" }))
       return
     }
 
     if (type === 'excl') {
-      // אם שינינו את ה"לפני מע"מ", נחשב את ה"כולל"
       const incl = (numVal * rate).toFixed(2)
-      setPrices(prev => ({
-        ...prev,
-        [`${field}Excl`]: value,
-        [`${field}Incl`]: incl
-      }))
+      setPrices(prev => ({ ...prev, [`${field}Excl`]: value, [`${field}Incl`]: incl }))
     } else {
-      // אם שינינו את ה"כולל מע"מ", נחשב את ה"לפני"
       const excl = (numVal / rate).toFixed(2)
-      setPrices(prev => ({
-        ...prev,
-        [`${field}Incl`]: value,
-        [`${field}Excl`]: excl
-      }))
+      setPrices(prev => ({ ...prev, [`${field}Incl`]: value, [`${field}Excl`]: excl }))
     }
   }
 
@@ -106,51 +93,54 @@ export function NewRideDialog({ onRideCreated }: { onRideCreated: () => void }) 
     calculateVat(e.target.value, type, field)
   }
 
-  // עדכון שאר השדות
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
-  // שליחת הטופס
+  // טיפול בקובץ
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setFile(e.target.files[0])
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // ולידציה בסיסית לשדות חובה
-    if (!formData.description || !formData.pickup) {
-        toast({ title: "נא למלא שדות חובה (תיאור, התייצבות)", variant: "destructive" })
+    // ולידציה בסיסית
+    if (!formData.description || !formData.pickupTime) {
+        toast({ title: "נא למלא שדות חובה (תיאור, שעת התייצבות)", variant: "destructive" })
         return
     }
 
     setLoading(true)
 
     try {
+      // הערה: שליחת קובץ דורשת FormData בדרך כלל. 
+      // כאן אני שולח JSON רגיל כבסיס. אם ה-API תומך בקבצים, נצטרך לשנות את שיטת השליחה.
       const payload = {
         fields: {
-          // טאב 1: פרטי נסיעה
-          fldvNsQbfzMWTc7jakp: format(date, "yyyy-MM-dd"), // תאריך
-          fldA6e7ul57abYgAZDh: formData.description, // תיאור
-          fldLbXMREYfC8XVIghj: formData.pickup, // התייצבות
-          fld56G8M1LyHRRROWiL: formData.dropoff, // חזור
-          fldx4hl8FwbxfkqXf0B: formData.vehicleType, // סוג רכב
-          flddNPbrzOCdgS36kx5: formData.driver, // נהג
-          fldqStJV3KKIutTY9hW: formData.vehicleNumber, // מספר רכב
-          fldhNoiFEkEgrkxff02: formData.notesDriver, // הערות לנהג
-          fldVy6L2DCboXUTkjBX: formData.customer, // לקוח (הוספתי שיהיה קיים במערכת)
+          fldvNsQbfzMWTc7jakp: format(date, "yyyy-MM-dd"), 
+          fldA6e7ul57abYgAZDh: formData.description,
+          fldLbXMREYfC8XVIghj: formData.pickupTime, // שעת התייצבות
+          fld56G8M1LyHRRROWiL: formData.dropoffTime, // שעת חזור
+          fldx4hl8FwbxfkqXf0B: formData.vehicleType, 
+          flddNPbrzOCdgS36kx5: formData.driver,
+          fldqStJV3KKIutTY9hW: formData.vehicleNumber, 
+          fldhNoiFEkEgrkxff02: formData.notesDriver,
+          fldVy6L2DCboXUTkjBX: formData.customer, 
           
-          // הערה: קבצים (fldKkq5oyBm8CwcAIvH) דורשים טיפול מיוחד ב-API, 
-          // כרגע אנחנו שולחים רק טקסט. אם ה-API תומך, צריך לשנות ל-FormData.
+          // מחירים
+          fldxXnfHHQWwXY8dlEV: Number(prices.clientExcl) || 0,
+          fldT7QLSKmSrjIHarDb: Number(prices.clientIncl) || 0,
+          fldSNuxbM8oJfrQ3a9x: Number(prices.driverExcl) || 0,
+          fldyQIhjdUeQwtHMldD: Number(prices.driverIncl) || 0,
 
-          // טאב 2: מחירים
-          fldxXnfHHQWwXY8dlEV: Number(prices.clientExcl) || 0, // לקוח לפני
-          fldT7QLSKmSrjIHarDb: Number(prices.clientIncl) || 0, // לקוח כולל
-          fldSNuxbM8oJfrQ3a9x: Number(prices.driverExcl) || 0, // נהג לפני
-          fldyQIhjdUeQwtHMldD: Number(prices.driverIncl) || 0, // נהג כולל
-
-          // טאב 3: פרטים נוספים
-          fldkvTaql1bPbifVKLt: formData.orderingName, // שם מזמין
-          fld6NJPsiW8CtRIfnaY: formData.mobile, // נייד
-          fldAJPcCFUcDPlSCK1a: formData.idNumber, // ת"ז
+          // פרטים נוספים
+          fldkvTaql1bPbifVKLt: formData.orderingName,
+          fld6NJPsiW8CtRIfnaY: formData.mobile,
+          fldAJPcCFUcDPlSCK1a: formData.idNumber,
         }
       }
 
@@ -168,11 +158,11 @@ export function NewRideDialog({ onRideCreated }: { onRideCreated: () => void }) 
       
       // איפוס
       setFormData({
-        customer: "", description: "", pickup: "", dropoff: "", vehicleType: "",
-        driver: "", vehicleNumber: "", notesDriver: "", orderForm: null,
-        orderingName: "", mobile: "", idNumber: ""
+        customer: "", description: "", pickupTime: "", dropoffTime: "", vehicleType: "",
+        driver: "", vehicleNumber: "", notesDriver: "", orderingName: "", mobile: "", idNumber: ""
       })
       setPrices({ clientExcl: "", clientIncl: "", driverExcl: "", driverIncl: "" })
+      setFile(null)
       setDate(new Date())
 
     } catch (error) {
@@ -213,15 +203,9 @@ export function NewRideDialog({ onRideCreated }: { onRideCreated: () => void }) 
               {/* === טאב 1: פרטי נסיעה === */}
               <TabsContent value="details" className="space-y-4 mt-0">
                 
-                {/* לקוח - לא ברשימה שלך אבל קריטי למערכת */}
-                <div className="space-y-2">
-                  <Label htmlFor="customer" className="text-right block">שם לקוח</Label>
-                  <Input id="customer" name="customer" value={formData.customer} onChange={handleChange} className="text-right" />
-                </div>
-
                 {/* תאריך (חובה) */}
                 <div className="space-y-2">
-                  <Label className="text-right block text-red-500">תאריך *</Label>
+                  <Label className="text-right block">תאריך <span className="text-red-500">*</span></Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button variant={"outline"} className={cn("w-full justify-start text-right font-normal", !date && "text-muted-foreground")}>
@@ -237,32 +221,96 @@ export function NewRideDialog({ onRideCreated }: { onRideCreated: () => void }) 
 
                 {/* תיאור (חובה) */}
                 <div className="space-y-2">
-                  <Label htmlFor="description" className="text-right block text-red-500">תיאור *</Label>
+                  <Label htmlFor="description" className="text-right block">תיאור <span className="text-red-500">*</span></Label>
                   <Textarea id="description" name="description" value={formData.description} onChange={handleChange} className="text-right resize-none" rows={2} />
                 </div>
 
-                {/* התייצבות (חובה) */}
+                {/* התייצבות (חובה) - שעון */}
                 <div className="space-y-2">
-                  <Label htmlFor="pickup" className="text-right block text-red-500">התייצבות *</Label>
-                  <Input id="pickup" name="pickup" value={formData.pickup} onChange={handleChange} className="text-right" />
+                  <Label htmlFor="pickupTime" className="text-right block">שעת התייצבות <span className="text-red-500">*</span></Label>
+                  <div className="relative">
+                    <Input 
+                        id="pickupTime" 
+                        name="pickupTime" 
+                        type="time" 
+                        value={formData.pickupTime} 
+                        onChange={handleChange} 
+                        className="text-right" 
+                    />
+                  </div>
                 </div>
 
-                {/* חזור */}
+                {/* חזור - שעון */}
                 <div className="space-y-2">
-                  <Label htmlFor="dropoff" className="text-right block">חזור</Label>
-                  <Input id="dropoff" name="dropoff" value={formData.dropoff} onChange={handleChange} className="text-right" />
+                  <Label htmlFor="dropoffTime" className="text-right block">שעת חזור</Label>
+                  <div className="relative">
+                    <Input 
+                        id="dropoffTime" 
+                        name="dropoffTime" 
+                        type="time" 
+                        value={formData.dropoffTime} 
+                        onChange={handleChange} 
+                        className="text-right" 
+                    />
+                  </div>
                 </div>
 
-                {/* סוג רכב */}
+                {/* סוג רכב - שדה מקושר (רשימה) */}
                 <div className="space-y-2">
                   <Label htmlFor="vehicleType" className="text-right block">סוג רכב</Label>
-                  <Input id="vehicleType" name="vehicleType" value={formData.vehicleType} onChange={handleChange} className="text-right" />
+                  <Input 
+                    id="vehicleType" 
+                    name="vehicleType" 
+                    list="vehicleTypes" 
+                    value={formData.vehicleType} 
+                    onChange={handleChange} 
+                    className="text-right" 
+                    placeholder="בחר או הקלד סוג רכב..."
+                  />
+                  <datalist id="vehicleTypes">
+                    <option value="אוטובוס" />
+                    <option value="מיניבוס" />
+                    <option value="ואן" />
+                    <option value="מונית" />
+                  </datalist>
                 </div>
 
-                {/* שם נהג */}
+                {/* שם לקוח - שדה מקושר (רשימה) */}
+                <div className="space-y-2">
+                  <Label htmlFor="customer" className="text-right block">שם לקוח</Label>
+                  <Input 
+                    id="customer" 
+                    name="customer" 
+                    list="customers" 
+                    value={formData.customer} 
+                    onChange={handleChange} 
+                    className="text-right" 
+                    placeholder="בחר או הקלד לקוח..."
+                  />
+                  <datalist id="customers">
+                    <option value="לקוח מזדמן" />
+                    <option value="אינטל" />
+                    <option value="משרד הביטחון" />
+                  </datalist>
+                </div>
+
+                {/* שם נהג - שדה מקושר (רשימה) */}
                 <div className="space-y-2">
                   <Label htmlFor="driver" className="text-right block">שם נהג</Label>
-                  <Input id="driver" name="driver" value={formData.driver} onChange={handleChange} className="text-right" />
+                  <Input 
+                    id="driver" 
+                    name="driver" 
+                    list="drivers" 
+                    value={formData.driver} 
+                    onChange={handleChange} 
+                    className="text-right" 
+                    placeholder="בחר או הקלד נהג..."
+                  />
+                  <datalist id="drivers">
+                    <option value="ישראל ישראלי" />
+                    <option value="משה כהן" />
+                    <option value="דוד לוי" />
+                  </datalist>
                 </div>
 
                 {/* מספר רכב */}
@@ -280,9 +328,12 @@ export function NewRideDialog({ onRideCreated }: { onRideCreated: () => void }) 
                 {/* טופס הזמנה (קובץ) */}
                 <div className="space-y-2">
                   <Label htmlFor="orderForm" className="text-right block">טופס הזמנה</Label>
-                  <div className="flex items-center gap-2">
-                    <Input id="orderForm" type="file" className="text-right" disabled title="העלאת קבצים תתאפשר בהמשך" />
-                  </div>
+                  <Input 
+                    id="orderForm" 
+                    type="file" 
+                    onChange={handleFileChange}
+                    className="text-right cursor-pointer" 
+                  />
                 </div>
               </TabsContent>
 

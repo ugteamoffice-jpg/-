@@ -7,7 +7,7 @@ const TABLE_ID = 'tblUgEhLuyCwEK2yWG4';
 const API_KEY = process.env.TEABLE_API_KEY;
 const DATE_FIELD_ID = 'fldvNsQbfzMWTc7jakp';
 
-// --- GET: שליפת נתונים ---
+// --- GET ---
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -37,7 +37,7 @@ export async function GET(request: Request) {
   }
 }
 
-// --- POST: יצירה ---
+// --- POST ---
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -68,7 +68,7 @@ export async function POST(request: Request) {
   }
 }
 
-// --- PATCH: עריכה ---
+// --- PATCH ---
 export async function PATCH(request: Request) {
   try {
     const body = await request.json();
@@ -101,7 +101,7 @@ export async function PATCH(request: Request) {
   }
 }
 
-// --- DELETE: מחיקה (התיקון הסופי) ---
+// --- DELETE (המתוקן) ---
 export async function DELETE(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -110,23 +110,19 @@ export async function DELETE(request: Request) {
     if (!API_KEY) return NextResponse.json({ error: 'Missing API Key' }, { status: 500 });
     if (!recordId) return NextResponse.json({ error: 'Missing Record ID' }, { status: 400 });
 
-    console.log(`🗑️ Deleting record: ${recordId}`);
-
-    // התיקון: שימוש ב-Query Params במקום Body כדי למנוע בעיות Fetch בשרת
+    // התיקון: שימוש בפרמטר recordIds בכתובת ה-URL
     const endpoint = `${API_URL}/api/table/${TABLE_ID}/record?recordIds=${recordId}`;
 
     const response = await fetch(endpoint, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${API_KEY}`,
-        // אין כאן Content-Type כי אין Body
       },
       cache: 'no-store'
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("❌ Teable Delete Error:", response.status, errorText);
       return NextResponse.json({ error: "Delete Failed", details: errorText }, { status: response.status });
     }
 
@@ -134,7 +130,6 @@ export async function DELETE(request: Request) {
     return NextResponse.json(data);
 
   } catch (error) {
-    console.error("❌ Internal Delete Error:", error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

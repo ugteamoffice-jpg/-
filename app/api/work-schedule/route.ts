@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic'; // מונע Cache של Next.js
+
 const API_URL = 'https://teable-production-bedd.up.railway.app';
-const TABLE_ID = 'tblUgEhLuyCwEK2yWG4'; 
+const TABLE_ID = 'tblUgEhLuyCwEK2yWG4';
 const API_KEY = process.env.TEABLE_API_KEY;
 
+// קריאת נתונים (GET)
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -22,23 +25,27 @@ export async function GET(request: Request) {
   }
 }
 
+// יצירת רשומה (POST)
 export async function POST(request: Request) {
+  console.log("🔥🔥🔥 VERSION 3 ACTIVE - ATTEMPTING TO CREATE RECORD 🔥🔥🔥"); // חפש את השורה הזאת בלוגים!
+
   try {
-    const body = await request.json(); 
+    const body = await request.json();
     
-    if (!API_KEY) return NextResponse.json({ error: 'Missing Server API Key' }, { status: 500 });
+    if (!API_KEY) {
+      console.error("❌ Missing API KEY");
+      return NextResponse.json({ error: 'Missing Server API Key' }, { status: 500 });
+    }
 
     const teablePayload = {
       typecast: true,
       records: [{ fields: body.fields }]
     };
 
-    // בניית הכתובת
+    // בניית הכתובת עם הפרמטר הקריטי
     const endpoint = `${API_URL}/api/table/${TABLE_ID}/record?fieldKeyType=id`;
     
-    // --- לוג קריטי: נדפיס בדיוק לאן אנחנו שולחים ---
-    console.log("🚀 SENDING REQUEST TO:", endpoint);
-    console.log("📦 PAYLOAD:", JSON.stringify(teablePayload, null, 2));
+    console.log("🚀 Target URL:", endpoint); // חייב לראות בסוף ?fieldKeyType=id
 
     const response = await fetch(endpoint, {
       method: 'POST',
@@ -47,20 +54,21 @@ export async function POST(request: Request) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(teablePayload),
+      cache: 'no-store' // מוודא שזה לא שולף מתשובה ישנה
     });
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error("❌ Teable Error Response:", JSON.stringify(errorData, null, 2));
+      console.error("❌ Teable Error Dump:", JSON.stringify(errorData, null, 2));
       return NextResponse.json({ error: "Teable Error", details: errorData }, { status: response.status });
     }
 
     const data = await response.json();
-    console.log("✅ Success! Record Created:", data);
+    console.log("✅ SUCCESS! Record created.");
     return NextResponse.json(data);
 
   } catch (error) {
-    console.error("❌ Critical Server Error:", error);
+    console.error("❌ Server Crash:", error);
     return NextResponse.json({ error: 'Internal Server Error', details: String(error) }, { status: 500 });
   }
 }

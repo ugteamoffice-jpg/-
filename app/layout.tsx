@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
-import { Varela_Round } from "next/font/google"; // ייבוא הפונט ורלה מעוגל
+import { Varela_Round } from "next/font/google"; // 1. ייבוא הפונט
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster"
+import { cn } from "@/lib/utils"
 
-// הגדרת הפונט ורלה מעוגל
+// 2. הגדרת הפונט עם תמיכה בעברית
 const varela = Varela_Round({ 
-  weight: "400", 
-  subsets: ["hebrew", "latin"] 
+  subsets: ["hebrew", "latin"], 
+  weight: "400",
+  variable: "--font-varela", // הגדרת שם משתנה לשימוש ב-Tailwind
 });
 
 export const metadata: Metadata = {
@@ -21,7 +23,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="he" dir="rtl">
-      <body className={varela.className}>
+      {/* 3. שימוש במשתנה הפונט ובמחלקה font-sans שמחילה אותו על הכל */}
+      <body className={cn("min-h-screen bg-background font-sans antialiased", varela.variable)}>
         {children}
         <Toaster />
       </body>

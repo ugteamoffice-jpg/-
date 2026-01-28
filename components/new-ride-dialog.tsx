@@ -202,32 +202,32 @@ export function NewRideDialog({ onRideCreated }: { onRideCreated: () => void }) 
     }
   }
 
-  // --- שליחת הטופס בצורה בטוחה ---
+  // --- שליחת הטופס ---
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!formData.description || !formData.pickupTime) {
-        toast({ title: "נא למלא שדות חובה (תיאור, שעת התייצבות)", variant: "destructive" })
+    // בדיקת חובה מעודכנת: כולל לקוח
+    if (!formData.description || !formData.pickupTime || !formData.customer) {
+        toast({ title: "נא למלא שדות חובה (תאריך, שם לקוח, תיאור, שעת התייצבות)", variant: "destructive" })
         return
     }
 
     setLoading(true)
 
-    // פונקציית עזר למציאת ה-ID
     const getLinkID = (value: string, list: ListItem[]) => {
         const item = list.find(i => i.title === value);
-        return item ? [item.id] : undefined; // מחזיר undefined אם לא נמצא (כדי שהשדה יושמט)
+        return item ? [item.id] : undefined; 
     }
 
     try {
-      // בניית האובייקט בצורה דינמית - רק שדות עם ערך יישלחו
+      // בניית האובייקט - שדות חובה
       const fieldsToSend: any = {
-          fldvNsQbfzMWTc7jakp: format(date, "yyyy-MM-dd"), // תאריך
+          fldvNsQbfzMWTc7jakp: format(date, "yyyy-MM-dd"), 
           fldA6e7ul57abYgAZDh: formData.description,
           fldLbXMREYfC8XVIghj: formData.pickupTime,
       };
 
-      // שדות אופציונליים - מוסיפים רק אם יש להם ערך
+      // שדות אופציונליים
       if (formData.dropoffTime) fieldsToSend.fld56G8M1LyHRRROWiL = formData.dropoffTime;
       if (formData.vehicleNumber) fieldsToSend.fldqStJV3KKIutTY9hW = formData.vehicleNumber;
       if (formData.notesDriver) fieldsToSend.fldhNoiFEkEgrkxff02 = formData.notesDriver;
@@ -235,17 +235,23 @@ export function NewRideDialog({ onRideCreated }: { onRideCreated: () => void }) 
       if (formData.mobile) fieldsToSend.fld6NJPsiW8CtRIfnaY = formData.mobile;
       if (formData.idNumber) fieldsToSend.fldAJPcCFUcDPlSCK1a = formData.idNumber;
 
-      // טיפול בשדות מקושרים (רק אם נמצאה התאמה ברשימה)
+      // טיפול בשדות מקושרים
       const vehicleLink = getLinkID(formData.vehicleType, vehiclesList);
       if (vehicleLink) fieldsToSend.fldx4hl8FwbxfkqXf0B = vehicleLink;
 
       const driverLink = getLinkID(formData.driver, driversList);
       if (driverLink) fieldsToSend.flddNPbrzOCdgS36kx5 = driverLink;
 
+      // לקוח הוא חובה בטופס, אבל כאן נבדוק אם הוא קיים ברשימה
       const customerLink = getLinkID(formData.customer, customersList);
-      if (customerLink) fieldsToSend.fldVy6L2DCboXUTkjBX = customerLink;
+      if (customerLink) {
+         fieldsToSend.fldVy6L2DCboXUTkjBX = customerLink;
+      } else {
+         // אם הלקוח הוקלד ידנית ולא קיים ברשימה, לא נשלח אותו כרגע (כי זה שדה לינק)
+         // בעתיד אפשר להוסיף יצירה אוטומטית של לקוח חדש
+      }
 
-      // מספרים (תמיד נשלח 0 אם אין ערך, זה תקין)
+      // מספרים
       fieldsToSend.fldxXnfHHQWwXY8dlEV = Number(prices.clientExcl) || 0;
       fieldsToSend.fldT7QLSKmSrjIHarDb = Number(prices.clientIncl) || 0;
       fieldsToSend.fldSNuxbM8oJfrQ3a9x = Number(prices.driverExcl) || 0;
@@ -314,6 +320,7 @@ export function NewRideDialog({ onRideCreated }: { onRideCreated: () => void }) 
               {/* === טאב 1: פרטי נסיעה === */}
               <TabsContent value="details" className="space-y-4 mt-0">
                 
+                {/* 1. תאריך */}
                 <div className="space-y-2">
                   <Label className="text-right block">תאריך <span className="text-red-500">*</span></Label>
                   <Popover>
@@ -329,21 +336,36 @@ export function NewRideDialog({ onRideCreated }: { onRideCreated: () => void }) 
                   </Popover>
                 </div>
 
+                {/* 2. שם לקוח - זז לכאן והפך לחובה */}
+                <div className="space-y-2">
+                  <Label className="text-right block">שם לקוח <span className="text-red-500">*</span></Label>
+                  <AutoComplete 
+                    options={customersList} 
+                    value={formData.customer} 
+                    onChange={(val) => setFormData(prev => ({ ...prev, customer: val }))} 
+                    placeholder="בחר או הקלד לקוח..." 
+                  />
+                </div>
+
+                {/* 3. תיאור */}
                 <div className="space-y-2">
                   <Label htmlFor="description" className="text-right block">תיאור <span className="text-red-500">*</span></Label>
                   <Textarea id="description" name="description" value={formData.description} onChange={handleChange} className="text-right resize-none" rows={2} />
                 </div>
 
+                {/* 4. התייצבות */}
                 <div className="space-y-2">
                   <Label htmlFor="pickupTime" className="text-right block">שעת התייצבות <span className="text-red-500">*</span></Label>
                   <Input id="pickupTime" name="pickupTime" type="time" value={formData.pickupTime} onChange={handleChange} className="text-right" />
                 </div>
 
+                {/* 5. חזור */}
                 <div className="space-y-2">
                   <Label htmlFor="dropoffTime" className="text-right block">שעת חזור</Label>
                   <Input id="dropoffTime" name="dropoffTime" type="time" value={formData.dropoffTime} onChange={handleChange} className="text-right" />
                 </div>
 
+                {/* 6. סוג רכב */}
                 <div className="space-y-2">
                   <Label className="text-right block">סוג רכב</Label>
                   <AutoComplete 
@@ -354,16 +376,7 @@ export function NewRideDialog({ onRideCreated }: { onRideCreated: () => void }) 
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label className="text-right block">שם לקוח</Label>
-                  <AutoComplete 
-                    options={customersList} 
-                    value={formData.customer} 
-                    onChange={(val) => setFormData(prev => ({ ...prev, customer: val }))} 
-                    placeholder="בחר או הקלד לקוח..." 
-                  />
-                </div>
-
+                {/* 7. שם נהג */}
                 <div className="space-y-2">
                   <Label className="text-right block">שם נהג</Label>
                   <AutoComplete 
@@ -374,24 +387,22 @@ export function NewRideDialog({ onRideCreated }: { onRideCreated: () => void }) 
                   />
                 </div>
 
+                {/* 8. מספר רכב */}
                 <div className="space-y-2">
                   <Label htmlFor="vehicleNumber" className="text-right block">מספר רכב</Label>
                   <Input id="vehicleNumber" name="vehicleNumber" value={formData.vehicleNumber} onChange={handleChange} className="text-right" />
                 </div>
 
+                {/* 9. הערות לנהג */}
                 <div className="space-y-2">
                   <Label htmlFor="notesDriver" className="text-right block">הערות לנהג</Label>
                   <Textarea id="notesDriver" name="notesDriver" value={formData.notesDriver} onChange={handleChange} className="text-right resize-none" rows={2} />
                 </div>
 
+                {/* 10. טופס הזמנה */}
                 <div className="space-y-2">
                   <Label htmlFor="orderForm" className="text-right block">טופס הזמנה</Label>
-                  <Input 
-                    id="orderForm" 
-                    type="file" 
-                    onChange={handleFileChange}
-                    className="text-right cursor-pointer" 
-                  />
+                  <Input id="orderForm" type="file" className="text-right cursor-pointer" />
                 </div>
               </TabsContent>
 

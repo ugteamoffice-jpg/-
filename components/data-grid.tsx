@@ -14,7 +14,7 @@ import {
   ColumnOrderState,
   ColumnSizingState,
 } from "@tanstack/react-table"
-import { Calendar as CalendarIcon, Trash2, GripVertical, Settings2, Save } from "lucide-react"
+import { Calendar as CalendarIcon, Trash2, GripVertical, Settings2, Save, Plus } from "lucide-react"
 import { format } from "date-fns"
 import { he } from "date-fns/locale"
 
@@ -30,7 +30,6 @@ import {
   TableRow,
 } from "@/components/ui/table"
 
-// --- תיקון: ייבוא השם הנכון (RideDialog) ---
 import { RideDialog } from "@/components/new-ride-dialog"
 
 import { Calendar } from "@/components/ui/calendar"
@@ -101,7 +100,8 @@ export const columns: ColumnDef<WorkScheduleRecord>[] = [
       </div>
     ),
     cell: ({ row }) => (
-      <div className="pr-4">
+      // --- התיקון כאן: onClick עם stopPropagation מונע את פתיחת השורה ---
+      <div className="pr-4" onClick={(e) => e.stopPropagation()}>
         <Checkbox
           checked={row.getIsSelected()}
           onCheckedChange={(value) => row.toggleSelected(!!value)}
@@ -121,7 +121,7 @@ export const columns: ColumnDef<WorkScheduleRecord>[] = [
     id: "sent",
     header: "שלח",
     cell: ({ row }) => (
-      <div className="flex justify-center">
+      <div className="flex justify-center" onClick={(e) => e.stopPropagation()}>
         <Checkbox checked={row.original.fields.fldMv14lt0W7ZBkq1PH as boolean} disabled />
       </div>
     ),
@@ -133,7 +133,7 @@ export const columns: ColumnDef<WorkScheduleRecord>[] = [
     id: "approved",
     header: "מאושר",
     cell: ({ row }) => (
-      <div className="flex justify-center">
+      <div className="flex justify-center" onClick={(e) => e.stopPropagation()}>
         <Checkbox checked={row.original.fields.fldDOBGATSaTi5TxyHB as boolean} disabled />
       </div>
     ),
@@ -598,8 +598,16 @@ export function DataGrid({ schema }: { schema: any }) {
             </PopoverContent>
           </Popover>
 
-          {/* תיקון: שימוש ב-RideDialog עבור יצירה חדשה */}
-          <RideDialog onRideSaved={fetchData} />
+          {/* כפתור יצירה חדש */}
+          <RideDialog 
+              onRideSaved={fetchData} 
+              triggerChild={
+                  <Button className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
+                    <Plus className="h-4 w-4" />
+                    צור נסיעה
+                  </Button>
+              }
+          />
 
           <div className="flex items-center w-full max-w-sm">
              <Input

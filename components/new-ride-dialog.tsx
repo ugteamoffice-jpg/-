@@ -13,8 +13,8 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
   DialogFooter,
-  DialogTrigger
 } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
@@ -40,12 +40,28 @@ const FIELDS = {
 
 interface ListItem { id: string; title: string }
 
+// --- התיקון לקריסה נמצא כאן ---
 function AutoComplete({ options, value, onChange, placeholder }: any) {
   const [show, setShow] = React.useState(false)
-  const filtered = options.filter((o: any) => o.title?.toLowerCase().includes(value?.toLowerCase() || ""))
+  
+  // הגנה: המרת הערך למחרוזת בטוחה לפני חיפוש
+  const safeValue = String(value || "").toLowerCase();
+  
+  const filtered = options.filter((o: any) => {
+      const title = String(o.title || "").toLowerCase();
+      return title.includes(safeValue);
+  })
+
   return (
     <div className="relative w-full">
-      <Input value={value} onChange={e => { onChange(e.target.value); setShow(true) }} onBlur={() => setTimeout(() => setShow(false), 200)} onFocus={() => setShow(true)} className="text-right" placeholder={placeholder} />
+      <Input 
+        value={value} 
+        onChange={e => { onChange(e.target.value); setShow(true) }} 
+        onBlur={() => setTimeout(() => setShow(false), 200)} 
+        onFocus={() => setShow(true)} 
+        className="text-right" 
+        placeholder={placeholder} 
+      />
       {show && filtered.length > 0 && (
         <div className="absolute z-50 w-full bg-white border shadow-md max-h-40 overflow-auto">
           {filtered.map((o: any) => (
@@ -57,13 +73,12 @@ function AutoComplete({ options, value, onChange, placeholder }: any) {
   )
 }
 
-// עדכון: הוספתי props לשליטה מבחוץ (controlledOpen, setControlledOpen)
 export function RideDialog({ onRideSaved, initialData, triggerChild, open: controlledOpen, onOpenChange: setControlledOpen }: any) {
   const [internalOpen, setInternalOpen] = React.useState(false)
   const [loading, setLoading] = React.useState(false)
   const { toast } = useToast()
   
-  // אנחנו משתמשים ב-state החיצוני אם הוא קיים, אחרת בפנימי
+  // לוגיקה חכמה: אם קיבלנו open מבחוץ - נשתמש בו. אחרת - נשתמש ב-state הפנימי.
   const isControlled = controlledOpen !== undefined;
   const open = isControlled ? controlledOpen : internalOpen;
   const setOpen = isControlled ? setControlledOpen : setInternalOpen;
@@ -82,7 +97,15 @@ export function RideDialog({ onRideSaved, initialData, triggerChild, open: contr
   React.useEffect(() => {
     if (open && lists.customers.length === 0) {
       const load = async (url: string) => {
-        try { const r = await fetch(url); const d = await r.json(); return d.records.map((x: any) => ({ id: x.id, title: Object.values(x.fields)[0] as string })) } catch { return [] }
+        try { 
+            const r = await fetch(url); 
+            const d = await r.json(); 
+            // הגנה נוספת בעת טעינת הנתונים
+            return d.records ? d.records.map((x: any) => ({ 
+                id: x.id, 
+                title: x.fields && Object.values(x.fields)[0] ? String(Object.values(x.fields)[0]) : "" 
+            })) : [] 
+        } catch { return [] }
       }
       Promise.all([load('/api/customers'), load('/api/drivers'), load('/api/vehicles')])
         .then(([c, d, v]) => setLists({ customers: c, drivers: d, vehicles: v }))
@@ -93,7 +116,7 @@ export function RideDialog({ onRideSaved, initialData, triggerChild, open: contr
     if (open && initialData) {
       const f = initialData.fields
       setDateStr(f[FIELDS.DATE] || "")
-      const getVal = (v: any) => Array.isArray(v) ? v[0]?.title : (v || "")
+      const getVal = (v: any) => Array.isArray(v) ? (v[0]?.title || "") : (v || "")
       
       setForm({
         customer: getVal(f[FIELDS.CUSTOMER]), description: f[FIELDS.DESCRIPTION] || "",
@@ -107,7 +130,6 @@ export function RideDialog({ onRideSaved, initialData, triggerChild, open: contr
         de: f[FIELDS.PRICE_DRIVER_EXCL] || "", di: f[FIELDS.PRICE_DRIVER_INCL] || ""
       })
     } else if (open && !initialData) {
-        // איפוס ביצירה חדשה
         setForm({
             customer: "", description: "", pickup: "", dropoff: "", vehicleType: "",
             driver: "", vehicleNum: "", notes: "", orderName: "", mobile: "", idNum: ""
@@ -152,11 +174,29 @@ export function RideDialog({ onRideSaved, initialData, triggerChild, open: contr
     } catch { toast({ title: "שגיאה", variant: "destructive" }) } finally { setLoading(false) }
   }
 
+  // כאן אנחנו מחליטים איך להציג את הטריגר
+  // אם העבירו triggerChild - משתמשים בו (למשל כפתור 'צור נסיעה' למעלה)
+  // אם לא העבירו, וזה לא controlled (כלומר זה שימוש ברירת מחדל) - מציגים כפתור ברירת מחדל
+  // במקרה של הטבלה (עריכה), אנחנו בכלל לא משתמשים בטריגר אלא ב-props של open
+  
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      {triggerChild && <DialogTrigger asChild>{triggerChild}</DialogTrigger>}
       
-      <DialogContent className="max-w-[700px] h-[80vh] flex flex-col" dir="rtl">
+      {/* הצגת הכפתור רק אם הועבר כזה, או אם אנחנו במצב לא מבוקר */}
+      {!isControlled && (
+          <DialogTrigger asChild>
+            {triggerChild ? triggerChild : (
+                <Button className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
+                <Plus className="h-4 w-4" />
+                צור נסיעה
+                </Button>
+            )}
+          </DialogTrigger>
+      )}
+
+      {/* אם זה מבוקר (מהטבלה), הטריגר הוא חיצוני ולא צריך להיות כאן, אבל ה-DialogContent כן */}
+
+      <DialogContent className="sm:max-w-[700px] h-[80vh] flex flex-col" dir="rtl">
         <DialogHeader><DialogTitle>{isEdit ? "עריכת נסיעה" : "נסיעה חדשה"}</DialogTitle></DialogHeader>
         <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
           <Tabs defaultValue="details" className="flex-1 flex flex-col overflow-hidden">

@@ -100,7 +100,6 @@ export const columns: ColumnDef<WorkScheduleRecord>[] = [
       </div>
     ),
     cell: ({ row }) => (
-      // --- התיקון כאן: onClick עם stopPropagation מונע את פתיחת השורה ---
       <div className="pr-4" onClick={(e) => e.stopPropagation()}>
         <Checkbox
           checked={row.getIsSelected()}
@@ -481,7 +480,8 @@ export function DataGrid({ schema }: { schema: any }) {
     const recordsToDelete = table.getFilteredSelectedRowModel().rows.map(row => row.original.id)
     try {
       for (const id of recordsToDelete) {
-        await fetch(`/api/work-schedule/${id}`, { method: "DELETE" })
+        const res = await fetch(`/api/work-schedule?recordId=${id}`, { method: "DELETE" })
+        if (!res.ok) throw new Error("Failed to delete");
       }
       toast({ title: "נמחק בהצלחה", description: `${recordsToDelete.length} רשומות נמחקו.` })
       setRowSelection({})

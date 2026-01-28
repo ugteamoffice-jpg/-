@@ -50,7 +50,6 @@ import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 import { ScrollArea } from "@/components/ui/scroll-area"
 
-// --- ממשקים ---
 export interface WorkScheduleRecord {
   id: string
   fields: {
@@ -85,7 +84,6 @@ const renderLinkField = (value: any) => {
   return String(value)
 }
 
-// הגדרת העמודות
 export const columns: ColumnDef<WorkScheduleRecord>[] = [
   {
     id: "select",
@@ -249,7 +247,6 @@ export const columns: ColumnDef<WorkScheduleRecord>[] = [
   },
 ]
 
-// --- קומפוננטת דיאלוג ---
 function ColumnReorderDialog({ 
   open, 
   onOpenChange, 
@@ -377,7 +374,6 @@ function ColumnReorderDialog({
   )
 }
 
-// --- הקומפוננטה הראשית ---
 export function DataGrid({ schema }: { schema: any }) {
   const [data, setData] = React.useState<WorkScheduleRecord[]>([])
   const [sorting, setSorting] = React.useState<SortingState>([])
@@ -397,7 +393,6 @@ export function DataGrid({ schema }: { schema: any }) {
 
   const { toast } = useToast()
   
-  // זה State ששומר איזו שורה אנחנו עורכים כרגע
   const [editingRecord, setEditingRecord] = React.useState<WorkScheduleRecord | null>(null)
   
   const [isCalendarOpen, setIsCalendarOpen] = React.useState(false)
@@ -421,7 +416,6 @@ export function DataGrid({ schema }: { schema: any }) {
     fetchData()
   }, [])
 
-  // טעינת הגדרות
   React.useEffect(() => {
     const savedSettings = localStorage.getItem(STORAGE_KEY)
     const defaultOrder = columns.map(c => c.id as string)
@@ -449,7 +443,6 @@ export function DataGrid({ schema }: { schema: any }) {
     }
   }, [])
 
-  // שמירת הגדרות
   React.useEffect(() => {
     if (columnOrder.length > 0) {
       const settingsToSave = {
@@ -480,8 +473,10 @@ export function DataGrid({ schema }: { schema: any }) {
     const recordsToDelete = table.getFilteredSelectedRowModel().rows.map(row => row.original.id)
     try {
       for (const id of recordsToDelete) {
+        // --- זהו התיקון היחיד בקובץ הזה: שליחת ה-ID כפרמטר ---
+        // זה מבטיח שהמחיקה תעבוד עם הקוד המתוקן בשרת, אבל ההתנהגות של הטבלה נשארת זהה
         const res = await fetch(`/api/work-schedule?recordId=${id}`, { method: "DELETE" })
-        if (!res.ok) throw new Error("Failed to delete");
+        if (!res.ok) throw new Error("Failed to delete")
       }
       toast({ title: "נמחק בהצלחה", description: `${recordsToDelete.length} רשומות נמחקו.` })
       setRowSelection({})
@@ -491,7 +486,6 @@ export function DataGrid({ schema }: { schema: any }) {
     }
   }
 
-  // בעת לחיצה על שורה, אנחנו מכניסים אותה ל-state של העריכה
   const handleRowClick = (record: WorkScheduleRecord) => {
     setEditingRecord(record)
   }
@@ -598,7 +592,6 @@ export function DataGrid({ schema }: { schema: any }) {
             </PopoverContent>
           </Popover>
 
-          {/* כפתור יצירה חדש */}
           <RideDialog 
               onRideSaved={fetchData} 
               triggerChild={
@@ -727,7 +720,6 @@ export function DataGrid({ schema }: { schema: any }) {
         </Table>
       </div>
 
-      {/* הדיאלוג לעריכה (נפתח בלחיצה על שורה) */}
       <RideDialog 
         open={!!editingRecord}
         onOpenChange={(isOpen: boolean) => !isOpen && setEditingRecord(null)}

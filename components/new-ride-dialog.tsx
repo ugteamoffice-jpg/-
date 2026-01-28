@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Plus, Calendar as CalendarIcon, Loader2, Save, Upload } from "lucide-react"
+import { Plus, Calendar as CalendarIcon, Loader2, Save } from "lucide-react"
 import { format } from "date-fns"
 import { he } from "date-fns/locale"
 
@@ -13,10 +13,10 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from "@/components/ui/dialog"
 import {
   Tabs,
@@ -202,7 +202,7 @@ export function NewRideDialog({ onRideCreated }: { onRideCreated: () => void }) 
     }
   }
 
-  // --- שליחת הטופס ---
+  // --- שליחת הטופס בצורה בטוחה ---
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
@@ -213,49 +213,55 @@ export function NewRideDialog({ onRideCreated }: { onRideCreated: () => void }) 
 
     setLoading(true)
 
-    // פונקציית עזר למציאת ה-ID של פריט מקושר
-    // Teable דורש מערך של IDs עבור שדות לינק: ['rec123']
-    const getLinkPayload = (value: string, list: ListItem[]) => {
+    // פונקציית עזר למציאת ה-ID
+    const getLinkID = (value: string, list: ListItem[]) => {
         const item = list.find(i => i.title === value);
-        return item ? [item.id] : null; 
+        return item ? [item.id] : undefined; // מחזיר undefined אם לא נמצא (כדי שהשדה יושמט)
     }
 
     try {
-      const payload = {
-        fields: {
-          // שדות טקסט/תאריך
-          fldvNsQbfzMWTc7jakp: format(date, "yyyy-MM-dd"), 
+      // בניית האובייקט בצורה דינמית - רק שדות עם ערך יישלחו
+      const fieldsToSend: any = {
+          fldvNsQbfzMWTc7jakp: format(date, "yyyy-MM-dd"), // תאריך
           fldA6e7ul57abYgAZDh: formData.description,
-          fldLbXMREYfC8XVIghj: formData.pickupTime, 
-          fld56G8M1LyHRRROWiL: formData.dropoffTime, 
-          fldqStJV3KKIutTY9hW: formData.vehicleNumber, 
-          fldhNoiFEkEgrkxff02: formData.notesDriver,
-          
-          // שדות מקושרים (שולחים ID ולא טקסט)
-          fldx4hl8FwbxfkqXf0B: getLinkPayload(formData.vehicleType, vehiclesList), 
-          flddNPbrzOCdgS36kx5: getLinkPayload(formData.driver, driversList),
-          fldVy6L2DCboXUTkjBX: getLinkPayload(formData.customer, customersList), 
-          
-          // שדות מספרים
-          fldxXnfHHQWwXY8dlEV: Number(prices.clientExcl) || 0,
-          fldT7QLSKmSrjIHarDb: Number(prices.clientIncl) || 0,
-          fldSNuxbM8oJfrQ3a9x: Number(prices.driverExcl) || 0,
-          fldyQIhjdUeQwtHMldD: Number(prices.driverIncl) || 0,
+          fldLbXMREYfC8XVIghj: formData.pickupTime,
+      };
 
-          // פרטים נוספים
-          fldkvTaql1bPbifVKLt: formData.orderingName,
-          fld6NJPsiW8CtRIfnaY: formData.mobile,
-          fldAJPcCFUcDPlSCK1a: formData.idNumber,
-        }
-      }
+      // שדות אופציונליים - מוסיפים רק אם יש להם ערך
+      if (formData.dropoffTime) fieldsToSend.fld56G8M1LyHRRROWiL = formData.dropoffTime;
+      if (formData.vehicleNumber) fieldsToSend.fldqStJV3KKIutTY9hW = formData.vehicleNumber;
+      if (formData.notesDriver) fieldsToSend.fldhNoiFEkEgrkxff02 = formData.notesDriver;
+      if (formData.orderingName) fieldsToSend.fldkvTaql1bPbifVKLt = formData.orderingName;
+      if (formData.mobile) fieldsToSend.fld6NJPsiW8CtRIfnaY = formData.mobile;
+      if (formData.idNumber) fieldsToSend.fldAJPcCFUcDPlSCK1a = formData.idNumber;
+
+      // טיפול בשדות מקושרים (רק אם נמצאה התאמה ברשימה)
+      const vehicleLink = getLinkID(formData.vehicleType, vehiclesList);
+      if (vehicleLink) fieldsToSend.fldx4hl8FwbxfkqXf0B = vehicleLink;
+
+      const driverLink = getLinkID(formData.driver, driversList);
+      if (driverLink) fieldsToSend.flddNPbrzOCdgS36kx5 = driverLink;
+
+      const customerLink = getLinkID(formData.customer, customersList);
+      if (customerLink) fieldsToSend.fldVy6L2DCboXUTkjBX = customerLink;
+
+      // מספרים (תמיד נשלח 0 אם אין ערך, זה תקין)
+      fieldsToSend.fldxXnfHHQWwXY8dlEV = Number(prices.clientExcl) || 0;
+      fieldsToSend.fldT7QLSKmSrjIHarDb = Number(prices.clientIncl) || 0;
+      fieldsToSend.fldSNuxbM8oJfrQ3a9x = Number(prices.driverExcl) || 0;
+      fieldsToSend.fldyQIhjdUeQwtHMldD = Number(prices.driverIncl) || 0;
+
 
       const response = await fetch("/api/work-schedule", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      })
+        body: JSON.stringify({ fields: fieldsToSend }),
+      });
 
-      if (!response.ok) throw new Error("Failed to create record")
+      if (!response.ok) {
+          const errData = await response.json();
+          throw new Error(errData.error || "Failed to create record");
+      }
 
       toast({ title: "הנסיעה נוצרה בהצלחה!" })
       setOpen(false)
@@ -270,9 +276,9 @@ export function NewRideDialog({ onRideCreated }: { onRideCreated: () => void }) 
       setFile(null)
       setDate(new Date())
 
-    } catch (error) {
+    } catch (error: any) {
       console.error(error)
-      toast({ title: "שגיאה ביצירת נסיעה", variant: "destructive" })
+      toast({ title: "שגיאה ביצירת נסיעה", description: error.message, variant: "destructive" })
     } finally {
       setLoading(false)
     }
@@ -380,7 +386,12 @@ export function NewRideDialog({ onRideCreated }: { onRideCreated: () => void }) 
 
                 <div className="space-y-2">
                   <Label htmlFor="orderForm" className="text-right block">טופס הזמנה</Label>
-                  <Input id="orderForm" type="file" className="text-right cursor-pointer" />
+                  <Input 
+                    id="orderForm" 
+                    type="file" 
+                    onChange={handleFileChange}
+                    className="text-right cursor-pointer" 
+                  />
                 </div>
               </TabsContent>
 

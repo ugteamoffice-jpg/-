@@ -7,31 +7,21 @@ const TABLE_ID = 'tblUgEhLuyCwEK2yWG4';
 const API_KEY = process.env.TEABLE_API_KEY;
 const DATE_FIELD_ID = 'fldvNsQbfzMWTc7jakp';
 
-// --- GET: שליפת נתונים ---
+// --- GET: שליפה ---
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const take = searchParams.get('take') || '1000';
     const dateParam = searchParams.get('date'); 
 
-    // שליפה עם IDs
     let endpoint = `${API_URL}/api/table/${TABLE_ID}/record?take=${take}&fieldKeyType=id`;
 
     if (dateParam) {
-      // סינון לפי תאריך
       const filterObj = {
         operator: "and",
-        filterSet: [
-          {
-            fieldId: DATE_FIELD_ID,
-            operator: "is",
-            value: dateParam
-          }
-        ]
+        filterSet: [{ fieldId: DATE_FIELD_ID, operator: "is", value: dateParam }]
       };
-      
-      const encodedFilter = encodeURIComponent(JSON.stringify(filterObj));
-      endpoint += `&filter=${encodedFilter}`;
+      endpoint += `&filter=${encodeURIComponent(JSON.stringify(filterObj))}`;
     }
 
     const response = await fetch(endpoint, {
@@ -40,7 +30,6 @@ export async function GET(request: Request) {
     });
 
     if (!response.ok) return NextResponse.json({ error: 'Failed' }, { status: response.status });
-
     const data = await response.json();
     return NextResponse.json(data);
   } catch (error) {
@@ -48,27 +37,23 @@ export async function GET(request: Request) {
   }
 }
 
-// --- POST: יצירת רשומה חדשה ---
+// --- POST: יצירה ---
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     if (!API_KEY) return NextResponse.json({ error: 'Missing API Key' }, { status: 500 });
 
-    const teablePayload = {
-      fieldKeyType: "id", 
-      typecast: true,
-      records: [{ fields: body.fields }]
-    };
-
-    const endpoint = `${API_URL}/api/table/${TABLE_ID}/record?fieldKeyType=id`;
-    
-    const response = await fetch(endpoint, {
+    const response = await fetch(`${API_URL}/api/table/${TABLE_ID}/record?fieldKeyType=id`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${API_KEY}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(teablePayload),
+      body: JSON.stringify({
+        fieldKeyType: "id", 
+        typecast: true,
+        records: [{ fields: body.fields }]
+      }),
       cache: 'no-store'
     });
 
@@ -76,65 +61,49 @@ export async function POST(request: Request) {
       const errorData = await response.json();
       return NextResponse.json({ error: "Teable Error", details: errorData }, { status: response.status });
     }
-
     const data = await response.json();
     return NextResponse.json(data);
-
   } catch (error) {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
 
-// --- PATCH: עדכון רשומה קיימת ---
+// --- PATCH: עריכה ---
 export async function PATCH(request: Request) {
   try {
     const body = await request.json();
     const { recordId, fields } = body;
 
     if (!API_KEY) return NextResponse.json({ error: 'Missing API Key' }, { status: 500 });
-    if (!recordId) return NextResponse.json({ error: 'Missing Record ID' }, { status: 400 });
 
-    console.log(`📝 Updating record ${recordId}...`);
-
-    const teablePayload = {
-      fieldKeyType: "id",
-      typecast: true,
-      records: [{ 
-        id: recordId,
-        fields: fields 
-      }]
-    };
-
-    const endpoint = `${API_URL}/api/table/${TABLE_ID}/record?fieldKeyType=id`;
-
-    const response = await fetch(endpoint, {
+    const response = await fetch(`${API_URL}/api/table/${TABLE_ID}/record?fieldKeyType=id`, {
       method: 'PATCH',
       headers: {
         'Authorization': `Bearer ${API_KEY}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(teablePayload),
+      body: JSON.stringify({
+        fieldKeyType: "id",
+        typecast: true,
+        records: [{ id: recordId, fields: fields }]
+      }),
       cache: 'no-store'
     });
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error("❌ Patch Error:", errorData);
       return NextResponse.json({ error: "Update Failed", details: errorData }, { status: response.status });
     }
-
     const data = await response.json();
     return NextResponse.json(data);
-
   } catch (error) {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
 
-// --- DELETE: מחיקת רשומה (הגרסה המתוקנת) ---
+// --- DELETE: מחיקה (התיקון) ---
 export async function DELETE(request: Request) {
   try {
-    // שלב 1: מקבלים את ה-ID מהדפדפן (דרך הכתובת)
     const { searchParams } = new URL(request.url);
     const recordId = searchParams.get('recordId');
 
@@ -143,25 +112,21 @@ export async function DELETE(request: Request) {
 
     console.log(`🗑️ Deleting record ${recordId}...`);
 
-    // שלב 2: שולחים ל-Teable בשיטה הבטוחה (דרך ה-Body)
-    const endpoint = `${API_URL}/api/table/${TABLE_ID}/record`;
+    // התיקון: שליחת ה-ID ישירות ב-URL ל-Teable
+    const endpoint = `${API_URL}/api/table/${TABLE_ID}/record?recordIds=${recordId}`;
 
     const response = await fetch(endpoint, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${API_KEY}`,
-        'Content-Type': 'application/json', // חובה!
+        'Content-Type': 'application/json',
       },
-      // כאן התיקון: שולחים אובייקט JSON עם רשימת המזהים למחיקה
-      body: JSON.stringify({
-        recordIds: [recordId] 
-      }),
       cache: 'no-store'
     });
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error("❌ Delete Error from Teable:", errorData);
+      console.error("❌ Delete Error:", errorData);
       return NextResponse.json({ error: "Delete Failed", details: errorData }, { status: response.status });
     }
 
@@ -169,7 +134,6 @@ export async function DELETE(request: Request) {
     return NextResponse.json(data);
 
   } catch (error) {
-    console.error("❌ Internal Delete Error:", error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

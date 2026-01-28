@@ -1,6 +1,13 @@
 import type { Metadata } from "next";
+import { Varela_Round } from "next/font/google"; // ייבוא הפונט ורלה מעוגל
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster"
+
+// הגדרת הפונט ורלה מעוגל
+const varela = Varela_Round({ 
+  weight: "400", 
+  subsets: ["hebrew", "latin"] 
+});
 
 export const metadata: Metadata = {
   title: "מערכת ניהול",
@@ -14,8 +21,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="he" dir="rtl">
-      {/* הורדתי את כל הפונטים החיצוניים. עכשיו זה ישתמש בפונט ברירת המחדל של המחשב */}
-      <body className="antialiased">
+      <body className={varela.className}>
         {children}
         <Toaster />
       </body>

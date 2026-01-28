@@ -1,8 +1,9 @@
 "use client"
 
 import * as React from "react"
-import { Plus, Loader2, Save, Pencil, Upload } from "lucide-react"
+import { Plus, Loader2, Save, Pencil, Upload, Calendar as CalendarIcon } from "lucide-react"
 import { format } from "date-fns"
+import { he } from "date-fns/locale" // חשוב לעברית
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -18,6 +19,9 @@ import {
 } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
+import { Calendar } from "@/components/ui/calendar" // הלוח שנה היפה
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover" // החלון הקופץ
+import { cn } from "@/lib/utils"
 
 // מזהי השדות ב-Teable
 const FIELDS = {
@@ -84,10 +88,10 @@ export function RideDialog({ onRideSaved, initialData, triggerChild, open: contr
 
   const isEdit = !!initialData
 
-  // State
-  const [dateStr, setDateStr] = React.useState(format(new Date(), "yyyy-MM-dd"))
+  // State - שיניתי לשימוש ב-Date object בשביל הלוח שנה
+  const [date, setDate] = React.useState<Date | undefined>(new Date())
   
-  // שני משתני מע"מ נפרדים - ברירת מחדל 18%
+  // מע"מ
   const [vatClient, setVatClient] = React.useState("18")
   const [vatDriver, setVatDriver] = React.useState("18")
   
@@ -123,18 +127,17 @@ export function RideDialog({ onRideSaved, initialData, triggerChild, open: contr
     if (open && initialData) {
       const f = initialData.fields
       
-      // --- תיקון תאריך: המרה בטוחה לפורמט YYYY-MM-DD ---
+      // המרה ל-Date object
       if (f[FIELDS.DATE]) {
           const d = new Date(f[FIELDS.DATE]);
           if (!isNaN(d.getTime())) {
-              setDateStr(format(d, "yyyy-MM-dd"));
+              setDate(d);
           } else {
-              setDateStr(""); 
+              setDate(undefined);
           }
       } else {
-          setDateStr(format(new Date(), "yyyy-MM-dd"));
+          setDate(new Date());
       }
-      // ---------------------------------------------------
 
       const getVal = (v: any) => {
           if (!v) return "";
@@ -167,7 +170,7 @@ export function RideDialog({ onRideSaved, initialData, triggerChild, open: contr
             driver: "", vehicleNum: "", managerNotes: "", notes: "", orderName: "", mobile: "", idNum: ""
         })
         setPrices({ ce: "", ci: "", de: "", di: "" })
-        setDateStr(format(new Date(), "yyyy-MM-dd"))
+        setDate(new Date())
         setVatClient("18")
         setVatDriver("18")
     }
@@ -207,12 +210,16 @@ export function RideDialog({ onRideSaved, initialData, triggerChild, open: contr
         toast({ title: "שגיאה", description: "שדה 'סוג רכב' הוא חובה!", variant: "destructive" })
         return;
     }
+    if (!date) {
+         toast({ title: "שגיאה", description: "חובה לבחור תאריך!", variant: "destructive" })
+         return;
+    }
 
     setLoading(true)
     const findId = (val: string, list: ListItem[]) => { const item = list.find(x => x.title === val); return item ? [item.id] : undefined }
 
     const payload = {
-      [FIELDS.DATE]: dateStr,
+      [FIELDS.DATE]: format(date, "yyyy-MM-dd"), // המרה לפורמט שהשרת אוהב
       [FIELDS.DESCRIPTION]: form.description,
       [FIELDS.PICKUP_TIME]: form.pickup,
       [FIELDS.DROPOFF_TIME]: form.dropoff,
@@ -268,7 +275,30 @@ export function RideDialog({ onRideSaved, initialData, triggerChild, open: contr
             
             <div className="flex-1 overflow-y-auto p-4 border rounded mt-2">
               <TabsContent value="details" className="space-y-4">
-                <div className="space-y-1"><Label>תאריך <span className="text-red-500">*</span></Label><Input type="date" value={dateStr} onChange={e => setDateStr(e.target.value)} className="text-right"/></div>
+                
+                {/* --- החלפנו את ה-Input ברכיב הלוח שנה היפה --- */}
+                <div className="space-y-1">
+                    <Label>תאריך <span className="text-red-500">*</span></Label>
+                    <Popover>
+                        <PopoverTrigger asChild>
+                        <Button variant={"outline"} className={cn("w-full justify-start text-right font-normal", !date && "text-muted-foreground")}>
+                            <CalendarIcon className="ml-2 h-4 w-4" />
+                            {date ? format(date, "PPP", { locale: he }) : <span>בחר תאריך</span>}
+                        </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="end">
+                        <Calendar
+                            mode="single"
+                            selected={date}
+                            onSelect={setDate}
+                            initialFocus
+                            locale={he}
+                            dir="rtl"
+                        />
+                        </PopoverContent>
+                    </Popover>
+                </div>
+                
                 <div className="space-y-1"><Label>לקוח <span className="text-red-500">*</span></Label><AutoComplete options={lists.customers} value={form.customer} onChange={(v: string) => setForm(p => ({...p, customer: v}))} placeholder="בחר לקוח"/></div>
                 <div className="space-y-1"><Label>תיאור</Label><Textarea value={form.description} onChange={e => setForm(p => ({...p, description: e.target.value}))} className="text-right"/></div>
                 <div className="grid grid-cols-2 gap-4">

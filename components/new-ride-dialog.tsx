@@ -29,6 +29,7 @@ const FIELDS = {
   VEHICLE_TYPE: 'fldx4hl8FwbxfkqXf0B',
   DRIVER: 'flddNPbrzOCdgS36kx5',
   VEHICLE_NUM: 'fldqStJV3KKIutTY9hW',
+  MANAGER_NOTES: 'fldelKu7PLIBmCFfFPJ', // ה-ID החדש של הערות מנהל
   DRIVER_NOTES: 'fldhNoiFEkEgrkxff02',
   PRICE_CLIENT_EXCL: 'fldxXnfHHQWwXY8dlEV',
   PRICE_CLIENT_INCL: 'fldT7QLSKmSrjIHarDb',
@@ -37,7 +38,6 @@ const FIELDS = {
   ORDER_NAME: 'fldkvTaql1bPbifVKLt',
   MOBILE: 'fld6NJPsiW8CtRIfnaY',
   ID_NUM: 'fldAJPcCFUcDPlSCK1a',
-  // כאן אמור להיות ה-ID של שדה הקובץ, כרגע זה רק UI
 }
 
 interface ListItem { id: string; title: string }
@@ -95,7 +95,7 @@ export function RideDialog({ onRideSaved, initialData, triggerChild, open: contr
   
   const [form, setForm] = React.useState({
     customer: "", description: "", pickup: "", dropoff: "", vehicleType: "",
-    driver: "", vehicleNum: "", notes: "", orderName: "", mobile: "", idNum: ""
+    driver: "", vehicleNum: "", managerNotes: "", notes: "", orderName: "", mobile: "", idNum: ""
   })
   
   const [prices, setPrices] = React.useState({ ce: "", ci: "", de: "", di: "" })
@@ -129,7 +129,9 @@ export function RideDialog({ onRideSaved, initialData, triggerChild, open: contr
         customer: getVal(f[FIELDS.CUSTOMER]), description: f[FIELDS.DESCRIPTION] || "",
         pickup: f[FIELDS.PICKUP_TIME] || "", dropoff: f[FIELDS.DROPOFF_TIME] || "",
         vehicleType: getVal(f[FIELDS.VEHICLE_TYPE]), driver: getVal(f[FIELDS.DRIVER]),
-        vehicleNum: f[FIELDS.VEHICLE_NUM] || "", notes: f[FIELDS.DRIVER_NOTES] || "",
+        vehicleNum: f[FIELDS.VEHICLE_NUM] || "",
+        managerNotes: f[FIELDS.MANAGER_NOTES] || "", // טעינת הערות מנהל
+        notes: f[FIELDS.DRIVER_NOTES] || "",
         orderName: f[FIELDS.ORDER_NAME] || "", mobile: f[FIELDS.MOBILE] || "", idNum: f[FIELDS.ID_NUM] || ""
       })
       setPrices({
@@ -139,19 +141,18 @@ export function RideDialog({ onRideSaved, initialData, triggerChild, open: contr
     } else if (open && !initialData) {
         setForm({
             customer: "", description: "", pickup: "", dropoff: "", vehicleType: "",
-            driver: "", vehicleNum: "", notes: "", orderName: "", mobile: "", idNum: ""
+            driver: "", vehicleNum: "", managerNotes: "", notes: "", orderName: "", mobile: "", idNum: ""
         })
         setPrices({ ce: "", ci: "", de: "", di: "" })
         setDateStr(format(new Date(), "yyyy-MM-dd"))
-        setVatClient("18") // איפוס ל-18
-        setVatDriver("18") // איפוס ל-18
+        setVatClient("18")
+        setVatDriver("18")
     }
   }, [open, initialData])
 
-  // חישוב מע"מ (עכשיו מקבל את המע"מ הספציפי לכל צד)
+  // חישוב מע"מ
   const calculateVat = (value: string, type: 'excl' | 'incl', field: 'client' | 'driver') => {
     const numVal = parseFloat(value)
-    // בוחרים את אחוז המע"מ הנכון לפי השדה
     const currentVatRate = field === 'client' ? vatClient : vatDriver
     const rate = 1 + (parseFloat(currentVatRate) / 100)
     
@@ -175,24 +176,14 @@ export function RideDialog({ onRideSaved, initialData, triggerChild, open: contr
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // --- בדיקת שדות חובה ---
     if (!form.customer || form.customer.trim() === "") {
-        toast({
-            title: "שגיאה",
-            description: "שדה 'לקוח' הוא חובה!",
-            variant: "destructive"
-        })
+        toast({ title: "שגיאה", description: "שדה 'לקוח' הוא חובה!", variant: "destructive" })
         return;
     }
     if (!form.vehicleType || form.vehicleType.trim() === "") {
-        toast({
-            title: "שגיאה",
-            description: "שדה 'סוג רכב' הוא חובה!",
-            variant: "destructive"
-        })
+        toast({ title: "שגיאה", description: "שדה 'סוג רכב' הוא חובה!", variant: "destructive" })
         return;
     }
-    // -----------------------
 
     setLoading(true)
     const findId = (val: string, list: ListItem[]) => { const item = list.find(x => x.title === val); return item ? [item.id] : undefined }
@@ -203,6 +194,7 @@ export function RideDialog({ onRideSaved, initialData, triggerChild, open: contr
       [FIELDS.PICKUP_TIME]: form.pickup,
       [FIELDS.DROPOFF_TIME]: form.dropoff,
       [FIELDS.VEHICLE_NUM]: form.vehicleNum,
+      [FIELDS.MANAGER_NOTES]: form.managerNotes, // שליחת הערות מנהל
       [FIELDS.DRIVER_NOTES]: form.notes,
       [FIELDS.ORDER_NAME]: form.orderName,
       [FIELDS.MOBILE]: form.mobile,
@@ -263,12 +255,29 @@ export function RideDialog({ onRideSaved, initialData, triggerChild, open: contr
                 <div className="space-y-1"><Label>נהג</Label><AutoComplete options={lists.drivers} value={form.driver} onChange={(v: string) => setForm(p => ({...p, driver: v}))} placeholder="בחר נהג"/></div>
                 <div className="space-y-1"><Label>סוג רכב <span className="text-red-500">*</span></Label><AutoComplete options={lists.vehicles} value={form.vehicleType} onChange={(v: string) => setForm(p => ({...p, vehicleType: v}))} placeholder="בחר רכב"/></div>
                 <div className="space-y-1"><Label>מס' רכב</Label><Input value={form.vehicleNum} onChange={e => setForm(p => ({...p, vehicleNum: e.target.value}))} className="text-right"/></div>
-                <div className="space-y-1"><Label>הערות נהג</Label><Textarea value={form.notes} onChange={e => setForm(p => ({...p, notes: e.target.value}))} className="text-right"/></div>
+                
+                {/* הערות מנהל - מעל הערות נהג */}
+                <div className="space-y-1">
+                    <Label>הערות מנהל</Label>
+                    <Textarea value={form.managerNotes} onChange={e => setForm(p => ({...p, managerNotes: e.target.value}))} className="text-right border-blue-200 bg-blue-50/30" />
+                </div>
+
+                <div className="space-y-1">
+                    <Label>הערות נהג</Label>
+                    <Textarea value={form.notes} onChange={e => setForm(p => ({...p, notes: e.target.value}))} className="text-right" />
+                </div>
+
+                {/* טופס הזמנה - הועבר לכאן */}
+                <div className="space-y-2 pt-4 border-t mt-4">
+                    <Label className="flex items-center gap-2 font-bold"><Upload className="w-4 h-4"/> טופס הזמנה</Label>
+                    <Input type="file" className="cursor-pointer bg-slate-50"/>
+                    <p className="text-xs text-muted-foreground">העלאת קבצים עדיין בפיתוח (כרגע רק בחירת קובץ).</p>
+                </div>
               </TabsContent>
 
               <TabsContent value="prices" className="space-y-6">
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* צד לקוח - כחול */}
+                    {/* צד לקוח */}
                     <div className="space-y-4 p-4 border rounded-lg bg-blue-50/50">
                         <div className="flex justify-between items-center border-b border-blue-200 pb-2">
                             <h3 className="font-bold text-blue-700">מחיר לקוח</h3>
@@ -287,7 +296,7 @@ export function RideDialog({ onRideSaved, initialData, triggerChild, open: contr
                         </div>
                     </div>
 
-                    {/* צד נהג - כתום */}
+                    {/* צד נהג */}
                     <div className="space-y-4 p-4 border rounded-lg bg-orange-50/50">
                         <div className="flex justify-between items-center border-b border-orange-200 pb-2">
                             <h3 className="font-bold text-orange-700">מחיר נהג</h3>
@@ -312,13 +321,6 @@ export function RideDialog({ onRideSaved, initialData, triggerChild, open: contr
                 <div className="space-y-1"><Label>שם מזמין</Label><Input value={form.orderName} onChange={e => setForm(p => ({...p, orderName: e.target.value}))} className="text-right"/></div>
                 <div className="space-y-1"><Label>נייד</Label><Input value={form.mobile} onChange={e => setForm(p => ({...p, mobile: e.target.value}))} className="text-right"/></div>
                 <div className="space-y-1"><Label>ת.ז</Label><Input value={form.idNum} onChange={e => setForm(p => ({...p, idNum: e.target.value}))} className="text-right"/></div>
-                
-                {/* --- הוספתי חזרה את שדה טופס ההזמנה --- */}
-                <div className="space-y-2 pt-4 border-t mt-4">
-                    <Label className="flex items-center gap-2 font-bold"><Upload className="w-4 h-4"/> טופס הזמנה</Label>
-                    <Input type="file" className="cursor-pointer bg-slate-50"/>
-                    <p className="text-xs text-muted-foreground">העלאת קבצים עדיין בפיתוח (כרגע רק בחירת קובץ).</p>
-                </div>
               </TabsContent>
             </div>
           </Tabs>

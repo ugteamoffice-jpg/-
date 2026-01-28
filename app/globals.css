@@ -51,7 +51,7 @@
  
 @layer base {
   * {
-    /* התיקון: שימוש ב-CSS רגיל במקום @apply ששובר את הבנייה */
+    /* תיקון קריטי: שימוש ב-CSS רגיל במקום Tailwind שדורש קונפיגורציה */
     border-color: hsl(var(--border));
   }
   body {

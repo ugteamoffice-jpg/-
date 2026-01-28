@@ -51,11 +51,9 @@
  
 @layer base {
   * {
-    /* תיקון קריטי: שימוש ב-CSS רגיל במקום Tailwind שדורש קונפיגורציה */
-    border-color: hsl(var(--border));
+    @apply border-border;
   }
   body {
-    background-color: hsl(var(--background));
-    color: hsl(var(--foreground));
+    @apply bg-background text-foreground;
   }
 }

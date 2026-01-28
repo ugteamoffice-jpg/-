@@ -14,7 +14,7 @@ import {
   ColumnOrderState,
   ColumnSizingState,
 } from "@tanstack/react-table"
-import { ArrowUpDown, Calendar as CalendarIcon, Trash2, GripVertical, Settings2, Save } from "lucide-react"
+import { Calendar as CalendarIcon, Trash2, GripVertical, Settings2, Save } from "lucide-react"
 import { format } from "date-fns"
 import { he } from "date-fns/locale"
 
@@ -29,8 +29,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { NewRideDialog } from "@/components/new-ride-dialog"
-import { RecordEditDialog } from "@/components/record-edit-dialog" 
+
+// --- השינוי 1: שימוש בקומפוננטה החדשה ---
+import { RideDialog } from "@/components/new-ride-dialog"
+
 import { Calendar } from "@/components/ui/calendar"
 import {
   Dialog,
@@ -381,27 +383,27 @@ export function DataGrid({ schema }: { schema: any }) {
   const [data, setData] = React.useState<WorkScheduleRecord[]>([])
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
-  
-  // הסתרת עמודת רווח כברירת מחדל
+   
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({
     profit: false 
   })
-  
+   
   const [rowSelection, setRowSelection] = React.useState({})
   const [globalFilter, setGlobalFilter] = React.useState("")
   const [dateFilter, setDateFilter] = React.useState<Date>(new Date())
-  
+   
   const [columnOrder, setColumnOrder] = React.useState<ColumnOrderState>([])
   const [columnSizing, setColumnSizing] = React.useState<ColumnSizingState>({})
   const [isReorderOpen, setIsReorderOpen] = React.useState(false)
 
   const { toast } = useToast()
+  
+  // זה State ששומר איזו שורה אנחנו עורכים כרגע
   const [editingRecord, setEditingRecord] = React.useState<WorkScheduleRecord | null>(null)
-  const [isEditOpen, setIsEditOpen] = React.useState(false)
+  
   const [isCalendarOpen, setIsCalendarOpen] = React.useState(false)
   const [isResizing, setIsResizing] = React.useState(false)
 
-  // שיניתי ל-v5 כדי לאפס הגדרות ישנות ולהסתיר את הרווח
   const STORAGE_KEY = "workScheduleGridSettings_v5" 
 
   const fetchData = async () => {
@@ -489,9 +491,9 @@ export function DataGrid({ schema }: { schema: any }) {
     }
   }
 
+  // בעת לחיצה על שורה, אנחנו מכניסים אותה ל-state של העריכה
   const handleRowClick = (record: WorkScheduleRecord) => {
     setEditingRecord(record)
-    setIsEditOpen(true)
   }
 
   const handleDateSelect = (date: Date | undefined) => {
@@ -551,7 +553,6 @@ export function DataGrid({ schema }: { schema: any }) {
     },
   })
 
-  // --- חישוב סיכומים ---
   const totals = React.useMemo(() => {
     const rows = table.getFilteredRowModel().rows
     return {
@@ -567,10 +568,8 @@ export function DataGrid({ schema }: { schema: any }) {
   return (
     <div className="w-full h-[calc(100vh-2rem)] flex flex-col space-y-4 p-4" dir="rtl">
       
-      {/* שורת הכותרת */}
       <div className="flex items-center justify-between gap-4 flex-none">
         
-        {/* צד ימין (RTL Start) - כפתורים וכלים */}
         <div className="flex items-center gap-2">
           <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
             <PopoverTrigger asChild>
@@ -599,7 +598,8 @@ export function DataGrid({ schema }: { schema: any }) {
             </PopoverContent>
           </Popover>
 
-          <NewRideDialog onRideCreated={fetchData} />
+          {/* השינוי 2: כפתור יצירה שמחובר ל-fetchData */}
+          <RideDialog onRideSaved={fetchData} />
 
           <div className="flex items-center w-full max-w-sm">
              <Input
@@ -622,35 +622,29 @@ export function DataGrid({ schema }: { schema: any }) {
           )}
         </div>
 
-        {/* צד שמאל (RTL End) - מלבן סיכומים */}
         <div className="flex gap-6 text-sm bg-muted/20 p-2 px-4 rounded-md border shadow-sm">
-           
-           {/* עמודת לקוח */}
            <div className="flex flex-col gap-1 items-start justify-center">
-              <span>סה"כ ללקוח+ מע"מ: <span className="font-bold">{totals.price_client_plus_vat.toLocaleString()} ש"ח</span></span>
-              <span>סה"כ ללקוח כולל מע"מ: <span className="font-bold">{totals.price_client_full.toLocaleString()} ש"ח</span></span>
+             <span>סה"כ ללקוח+ מע"מ: <span className="font-bold">{totals.price_client_plus_vat.toLocaleString()} ש"ח</span></span>
+             <span>סה"כ ללקוח כולל מע"מ: <span className="font-bold">{totals.price_client_full.toLocaleString()} ש"ח</span></span>
            </div>
 
            <div className="w-[1px] bg-border my-1"></div>
 
-           {/* עמודת נהג */}
            <div className="flex flex-col gap-1 items-start justify-center">
-              <span>סה"כ לנהג+ מע"מ: <span className="font-bold">{totals.price_driver_plus_vat.toLocaleString()} ש"ח</span></span>
-              <span>סה"כ לנהג כולל מע"מ: <span className="font-bold">{totals.price_driver_full.toLocaleString()} ש"ח</span></span>
+             <span>סה"כ לנהג+ מע"מ: <span className="font-bold">{totals.price_driver_plus_vat.toLocaleString()} ש"ח</span></span>
+             <span>סה"כ לנהג כולל מע"מ: <span className="font-bold">{totals.price_driver_full.toLocaleString()} ש"ח</span></span>
            </div>
 
            <div className="w-[1px] bg-border my-1"></div>
 
-           {/* עמודת רווח */}
            <div className="flex flex-col gap-1 items-start justify-center text-green-600 font-medium">
-              <span>רווח+ מע"מ: <span className="font-bold">{totals.profit_plus_vat.toLocaleString()} ש"ח</span></span>
-              <span>רווח כולל מע"מ: <span className="font-bold">{totals.profit_full.toLocaleString()} ש"ח</span></span>
+             <span>רווח+ מע"מ: <span className="font-bold">{totals.profit_plus_vat.toLocaleString()} ש"ח</span></span>
+             <span>רווח כולל מע"מ: <span className="font-bold">{totals.profit_full.toLocaleString()} ש"ח</span></span>
            </div>
         </div>
 
       </div>
       
-      {/* גוף הטבלה */}
       <div className="rounded-md border flex-1 overflow-auto min-h-0">
         <Table className="relative w-full" style={{ tableLayout: 'fixed' }}>
           <TableHeader className="sticky top-0 bg-background z-10 shadow-sm">
@@ -705,6 +699,7 @@ export function DataGrid({ schema }: { schema: any }) {
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
                   className="cursor-pointer hover:bg-muted/50"
+                  // בעת לחיצה על שורה, נכנסים למצב עריכה
                   onClick={() => handleRowClick(row.original)}
                 >
                   {row.getVisibleCells().map((cell) => (
@@ -725,14 +720,16 @@ export function DataGrid({ schema }: { schema: any }) {
         </Table>
       </div>
 
-      <RecordEditDialog
-        record={editingRecord}
-        schema={schema}
-        open={isEditOpen}
-        onOpenChange={setIsEditOpen}
-        onSave={(updatedRecord) => {
-          setData(data.map((r) => (r.id === updatedRecord.id ? updatedRecord : r)))
+      {/* השינוי 3: הדיאלוג החדש לעריכה, שנפתח כשלוחצים על שורה */}
+      <RideDialog 
+        open={!!editingRecord}
+        onOpenChange={(isOpen: boolean) => !isOpen && setEditingRecord(null)}
+        initialData={editingRecord}
+        onRideSaved={() => {
+            setEditingRecord(null)
+            fetchData()
         }}
+        triggerChild={<span />} // מסתיר את כפתור הפתיחה כי אנחנו שולטים בו דרך ה-open
       />
 
       <ColumnReorderDialog 

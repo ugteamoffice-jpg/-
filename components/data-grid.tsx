@@ -473,8 +473,6 @@ export function DataGrid({ schema }: { schema: any }) {
     const recordsToDelete = table.getFilteredSelectedRowModel().rows.map(row => row.original.id)
     try {
       for (const id of recordsToDelete) {
-        // --- זהו התיקון היחיד בקובץ הזה: שליחת ה-ID כפרמטר ---
-        // זה מבטיח שהמחיקה תעבוד עם הקוד המתוקן בשרת, אבל ההתנהגות של הטבלה נשארת זהה
         const res = await fetch(`/api/work-schedule?recordId=${id}`, { method: "DELETE" })
         if (!res.ok) throw new Error("Failed to delete")
       }

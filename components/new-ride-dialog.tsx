@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Plus, Calendar as CalendarIcon, Loader2, Save, Upload, Clock } from "lucide-react"
+import { Plus, Calendar as CalendarIcon, Loader2, Save, Upload } from "lucide-react"
 import { format } from "date-fns"
 import { he } from "date-fns/locale"
 
@@ -55,7 +55,6 @@ function AutoComplete({
   const [filteredOptions, setFilteredOptions] = React.useState<ListItem[]>([])
   const wrapperRef = React.useRef<HTMLDivElement>(null)
 
-  // לוגיקת סינון: מציג רשימה רק אם יש טקסט
   React.useEffect(() => {
     if (!value || value.trim() === "") {
       setFilteredOptions([])
@@ -65,12 +64,10 @@ function AutoComplete({
         opt.title.toLowerCase().includes(value.toLowerCase())
       )
       setFilteredOptions(filtered)
-      // מציג את הרשימה רק אם מצאנו התאמות
       setShowList(filtered.length > 0)
     }
   }, [value, options])
 
-  // סגירת הרשימה כשלוחצים בחוץ
   React.useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
@@ -86,7 +83,6 @@ function AutoComplete({
       <Input 
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        // הורדתי את onFocus כדי שלא ייפתח סתם
         className="text-right"
         placeholder={placeholder}
         autoComplete="off"
@@ -99,8 +95,8 @@ function AutoComplete({
               key={option.id}
               className="px-3 py-2 text-right text-sm cursor-pointer hover:bg-gray-100 transition-colors border-b last:border-0 border-gray-100 text-black"
               onMouseDown={() => {
-                onChange(option.title) // בחירה
-                setShowList(false) // סגירה מיידית
+                onChange(option.title)
+                setShowList(false)
               }}
             >
               {option.title}
@@ -127,33 +123,27 @@ export function NewRideDialog({ onRideCreated }: { onRideCreated: () => void }) 
   const [driversList, setDriversList] = React.useState<ListItem[]>([])
   const [vehiclesList, setVehiclesList] = React.useState<ListItem[]>([])
 
-  // פונקציית עזר לחילוץ שם רשומה
   const getRecordName = (record: any) => {
       if (!record.fields) return record.id;
       const values = Object.values(record.fields);
       return values.length > 0 ? String(values[0]) : record.id;
   };
 
-  // טעינת נתונים
   React.useEffect(() => {
     if (open) {
-        // משיכת לקוחות
         fetch('/api/customers').then(res => res.json()).then(data => {
             if (data.records) setCustomersList(data.records.map((r: any) => ({ id: r.id, title: getRecordName(r) })));
         }).catch(console.error);
 
-        // משיכת נהגים
         fetch('/api/drivers').then(res => res.json()).then(data => {
             if (data.records) setDriversList(data.records.map((r: any) => ({ id: r.id, title: getRecordName(r) })));
         }).catch(console.error);
 
-        // משיכת רכבים
         fetch('/api/vehicles').then(res => res.json()).then(data => {
             if (data.records) setVehiclesList(data.records.map((r: any) => ({ id: r.id, title: getRecordName(r) })));
         }).catch(console.error);
     }
   }, [open])
-
 
   // שדות הטופס
   const [formData, setFormData] = React.useState({
@@ -165,8 +155,6 @@ export function NewRideDialog({ onRideCreated }: { onRideCreated: () => void }) 
     driver: "",
     vehicleNumber: "",
     notesDriver: "",
-    
-    // שדות נוספים
     orderingName: "",
     mobile: "",
     idNumber: "",
@@ -174,7 +162,6 @@ export function NewRideDialog({ onRideCreated }: { onRideCreated: () => void }) 
 
   const [file, setFile] = React.useState<File | null>(null)
 
-  // מחירים
   const [prices, setPrices] = React.useState({
     clientExcl: "",
     clientIncl: "",
@@ -182,7 +169,6 @@ export function NewRideDialog({ onRideCreated }: { onRideCreated: () => void }) 
     driverIncl: "",
   })
 
-  // --- לוגיקת חישוב מע"מ ---
   const calculateVat = (value: string, type: 'excl' | 'incl', field: 'client' | 'driver') => {
     const numVal = parseFloat(value)
     const rate = 1 + (parseFloat(vatRate) / 100)
@@ -216,6 +202,7 @@ export function NewRideDialog({ onRideCreated }: { onRideCreated: () => void }) 
     }
   }
 
+  // --- שליחת הטופס ---
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
@@ -226,24 +213,36 @@ export function NewRideDialog({ onRideCreated }: { onRideCreated: () => void }) 
 
     setLoading(true)
 
+    // פונקציית עזר למציאת ה-ID של פריט מקושר
+    // Teable דורש מערך של IDs עבור שדות לינק: ['rec123']
+    const getLinkPayload = (value: string, list: ListItem[]) => {
+        const item = list.find(i => i.title === value);
+        return item ? [item.id] : null; 
+    }
+
     try {
       const payload = {
         fields: {
+          // שדות טקסט/תאריך
           fldvNsQbfzMWTc7jakp: format(date, "yyyy-MM-dd"), 
           fldA6e7ul57abYgAZDh: formData.description,
           fldLbXMREYfC8XVIghj: formData.pickupTime, 
           fld56G8M1LyHRRROWiL: formData.dropoffTime, 
-          fldx4hl8FwbxfkqXf0B: formData.vehicleType, 
-          flddNPbrzOCdgS36kx5: formData.driver,
           fldqStJV3KKIutTY9hW: formData.vehicleNumber, 
           fldhNoiFEkEgrkxff02: formData.notesDriver,
-          fldVy6L2DCboXUTkjBX: formData.customer, 
           
+          // שדות מקושרים (שולחים ID ולא טקסט)
+          fldx4hl8FwbxfkqXf0B: getLinkPayload(formData.vehicleType, vehiclesList), 
+          flddNPbrzOCdgS36kx5: getLinkPayload(formData.driver, driversList),
+          fldVy6L2DCboXUTkjBX: getLinkPayload(formData.customer, customersList), 
+          
+          // שדות מספרים
           fldxXnfHHQWwXY8dlEV: Number(prices.clientExcl) || 0,
           fldT7QLSKmSrjIHarDb: Number(prices.clientIncl) || 0,
           fldSNuxbM8oJfrQ3a9x: Number(prices.driverExcl) || 0,
           fldyQIhjdUeQwtHMldD: Number(prices.driverIncl) || 0,
 
+          // פרטים נוספים
           fldkvTaql1bPbifVKLt: formData.orderingName,
           fld6NJPsiW8CtRIfnaY: formData.mobile,
           fldAJPcCFUcDPlSCK1a: formData.idNumber,
@@ -284,7 +283,7 @@ export function NewRideDialog({ onRideCreated }: { onRideCreated: () => void }) 
       <DialogTrigger asChild>
         <Button className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
           <Plus className="h-4 w-4" />
-          נסיעה חדשה
+          צור נסיעה
         </Button>
       </DialogTrigger>
       
@@ -292,7 +291,7 @@ export function NewRideDialog({ onRideCreated }: { onRideCreated: () => void }) 
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-right">יצירת נסיעה חדשה</DialogTitle>
           <DialogDescription className="text-right">
-            מלא את הפרטים בשדות ולחץ על שמירה.
+            מלא את הפרטים בשדות ולחץ על "צור נסיעה".
           </DialogDescription>
         </DialogHeader>
 
@@ -309,7 +308,6 @@ export function NewRideDialog({ onRideCreated }: { onRideCreated: () => void }) 
               {/* === טאב 1: פרטי נסיעה === */}
               <TabsContent value="details" className="space-y-4 mt-0">
                 
-                {/* תאריך (חובה) */}
                 <div className="space-y-2">
                   <Label className="text-right block">תאריך <span className="text-red-500">*</span></Label>
                   <Popover>
@@ -325,43 +323,21 @@ export function NewRideDialog({ onRideCreated }: { onRideCreated: () => void }) 
                   </Popover>
                 </div>
 
-                {/* תיאור (חובה) */}
                 <div className="space-y-2">
                   <Label htmlFor="description" className="text-right block">תיאור <span className="text-red-500">*</span></Label>
                   <Textarea id="description" name="description" value={formData.description} onChange={handleChange} className="text-right resize-none" rows={2} />
                 </div>
 
-                {/* התייצבות (חובה) - שעון */}
                 <div className="space-y-2">
                   <Label htmlFor="pickupTime" className="text-right block">שעת התייצבות <span className="text-red-500">*</span></Label>
-                  <div className="relative">
-                    <Input 
-                        id="pickupTime" 
-                        name="pickupTime" 
-                        type="time" 
-                        value={formData.pickupTime} 
-                        onChange={handleChange} 
-                        className="text-right" 
-                    />
-                  </div>
+                  <Input id="pickupTime" name="pickupTime" type="time" value={formData.pickupTime} onChange={handleChange} className="text-right" />
                 </div>
 
-                {/* חזור - שעון */}
                 <div className="space-y-2">
                   <Label htmlFor="dropoffTime" className="text-right block">שעת חזור</Label>
-                  <div className="relative">
-                    <Input 
-                        id="dropoffTime" 
-                        name="dropoffTime" 
-                        type="time" 
-                        value={formData.dropoffTime} 
-                        onChange={handleChange} 
-                        className="text-right" 
-                    />
-                  </div>
+                  <Input id="dropoffTime" name="dropoffTime" type="time" value={formData.dropoffTime} onChange={handleChange} className="text-right" />
                 </div>
 
-                {/* סוג רכב - השלמה אוטומטית */}
                 <div className="space-y-2">
                   <Label className="text-right block">סוג רכב</Label>
                   <AutoComplete 
@@ -372,7 +348,6 @@ export function NewRideDialog({ onRideCreated }: { onRideCreated: () => void }) 
                   />
                 </div>
 
-                {/* שם לקוח - השלמה אוטומטית */}
                 <div className="space-y-2">
                   <Label className="text-right block">שם לקוח</Label>
                   <AutoComplete 
@@ -383,7 +358,6 @@ export function NewRideDialog({ onRideCreated }: { onRideCreated: () => void }) 
                   />
                 </div>
 
-                {/* שם נהג - השלמה אוטומטית */}
                 <div className="space-y-2">
                   <Label className="text-right block">שם נהג</Label>
                   <AutoComplete 
@@ -394,27 +368,19 @@ export function NewRideDialog({ onRideCreated }: { onRideCreated: () => void }) 
                   />
                 </div>
 
-                {/* מספר רכב */}
                 <div className="space-y-2">
                   <Label htmlFor="vehicleNumber" className="text-right block">מספר רכב</Label>
                   <Input id="vehicleNumber" name="vehicleNumber" value={formData.vehicleNumber} onChange={handleChange} className="text-right" />
                 </div>
 
-                {/* הערות לנהג */}
                 <div className="space-y-2">
                   <Label htmlFor="notesDriver" className="text-right block">הערות לנהג</Label>
                   <Textarea id="notesDriver" name="notesDriver" value={formData.notesDriver} onChange={handleChange} className="text-right resize-none" rows={2} />
                 </div>
 
-                {/* טופס הזמנה (קובץ) */}
                 <div className="space-y-2">
                   <Label htmlFor="orderForm" className="text-right block">טופס הזמנה</Label>
-                  <Input 
-                    id="orderForm" 
-                    type="file" 
-                    onChange={handleFileChange}
-                    className="text-right cursor-pointer" 
-                  />
+                  <Input id="orderForm" type="file" className="text-right cursor-pointer" />
                 </div>
               </TabsContent>
 
@@ -476,7 +442,7 @@ export function NewRideDialog({ onRideCreated }: { onRideCreated: () => void }) 
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>ביטול</Button>
             <Button type="submit" disabled={loading} className="bg-primary min-w-[120px]">
               {loading ? <Loader2 className="ml-2 h-4 w-4 animate-spin" /> : <Save className="ml-2 h-4 w-4" />}
-              שמור נסיעה
+              צור נסיעה
             </Button>
           </DialogFooter>
 

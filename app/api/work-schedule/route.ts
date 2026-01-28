@@ -101,7 +101,8 @@ export async function PATCH(request: Request) {
   }
 }
 
-// --- DELETE (המתוקן) ---
+// --- DELETE ---
+// הוספתי כאן את הגרסה הכי פשוטה שעובדת דרך ה-URL
 export async function DELETE(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -110,7 +111,6 @@ export async function DELETE(request: Request) {
     if (!API_KEY) return NextResponse.json({ error: 'Missing API Key' }, { status: 500 });
     if (!recordId) return NextResponse.json({ error: 'Missing Record ID' }, { status: 400 });
 
-    // התיקון: שימוש בפרמטר recordIds בכתובת ה-URL
     const endpoint = `${API_URL}/api/table/${TABLE_ID}/record?recordIds=${recordId}`;
 
     const response = await fetch(endpoint, {
@@ -122,8 +122,7 @@ export async function DELETE(request: Request) {
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      return NextResponse.json({ error: "Delete Failed", details: errorText }, { status: response.status });
+        return NextResponse.json({ error: "Delete Failed" }, { status: response.status });
     }
 
     const data = await response.json();

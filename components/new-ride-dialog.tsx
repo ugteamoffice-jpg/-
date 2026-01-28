@@ -39,6 +39,80 @@ interface ListItem {
   title: string
 }
 
+// --- רכיב עזר: שדה השלמה אוטומטית (חיפוש בלבד) ---
+function AutoComplete({ 
+  options, 
+  value, 
+  onChange, 
+  placeholder 
+}: { 
+  options: ListItem[], 
+  value: string, 
+  onChange: (val: string) => void, 
+  placeholder: string 
+}) {
+  const [showList, setShowList] = React.useState(false)
+  const [filteredOptions, setFilteredOptions] = React.useState<ListItem[]>([])
+  const wrapperRef = React.useRef<HTMLDivElement>(null)
+
+  // לוגיקת סינון: מציג רשימה רק אם יש טקסט
+  React.useEffect(() => {
+    if (!value || value.trim() === "") {
+      setFilteredOptions([])
+      setShowList(false)
+    } else {
+      const filtered = options.filter(opt => 
+        opt.title.toLowerCase().includes(value.toLowerCase())
+      )
+      setFilteredOptions(filtered)
+      // מציג את הרשימה רק אם מצאנו התאמות
+      setShowList(filtered.length > 0)
+    }
+  }, [value, options])
+
+  // סגירת הרשימה כשלוחצים בחוץ
+  React.useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
+        setShowList(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
+
+  return (
+    <div ref={wrapperRef} className="relative w-full">
+      <Input 
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        // הורדתי את onFocus כדי שלא ייפתח סתם
+        className="text-right"
+        placeholder={placeholder}
+        autoComplete="off"
+      />
+      
+      {showList && (
+        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 shadow-md max-h-[200px] overflow-y-auto rounded-sm">
+          {filteredOptions.map((option) => (
+            <div
+              key={option.id}
+              className="px-3 py-2 text-right text-sm cursor-pointer hover:bg-gray-100 transition-colors border-b last:border-0 border-gray-100 text-black"
+              onMouseDown={() => {
+                onChange(option.title) // בחירה
+                setShowList(false) // סגירה מיידית
+              }}
+            >
+              {option.title}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// --- הרכיב הראשי ---
 export function NewRideDialog({ onRideCreated }: { onRideCreated: () => void }) {
   const [open, setOpen] = React.useState(false)
   const [loading, setLoading] = React.useState(false)
@@ -53,54 +127,30 @@ export function NewRideDialog({ onRideCreated }: { onRideCreated: () => void }) 
   const [driversList, setDriversList] = React.useState<ListItem[]>([])
   const [vehiclesList, setVehiclesList] = React.useState<ListItem[]>([])
 
-  // פונקציית עזר לחילוץ שם רשומה (לוקחת את הערך הראשון ב-fields)
+  // פונקציית עזר לחילוץ שם רשומה
   const getRecordName = (record: any) => {
       if (!record.fields) return record.id;
       const values = Object.values(record.fields);
-      // מחזיר את הערך הראשון שנמצא, או את ה-ID אם אין כלום
       return values.length > 0 ? String(values[0]) : record.id;
   };
 
   // טעינת נתונים
   React.useEffect(() => {
     if (open) {
-        console.log("Fetching lists...") // לוג לבדיקה
-
         // משיכת לקוחות
-        fetch('/api/customers')
-            .then(res => res.json())
-            .then(data => {
-                if (data.records) {
-                    const list = data.records.map((r: any) => ({ id: r.id, title: getRecordName(r) }));
-                    setCustomersList(list);
-                    console.log("Customers loaded:", list);
-                }
-            })
-            .catch(err => console.error("Error fetching customers:", err));
+        fetch('/api/customers').then(res => res.json()).then(data => {
+            if (data.records) setCustomersList(data.records.map((r: any) => ({ id: r.id, title: getRecordName(r) })));
+        }).catch(console.error);
 
         // משיכת נהגים
-        fetch('/api/drivers')
-            .then(res => res.json())
-            .then(data => {
-                if (data.records) {
-                    const list = data.records.map((r: any) => ({ id: r.id, title: getRecordName(r) }));
-                    setDriversList(list);
-                    console.log("Drivers loaded:", list);
-                }
-            })
-            .catch(err => console.error("Error fetching drivers:", err));
+        fetch('/api/drivers').then(res => res.json()).then(data => {
+            if (data.records) setDriversList(data.records.map((r: any) => ({ id: r.id, title: getRecordName(r) })));
+        }).catch(console.error);
 
         // משיכת רכבים
-        fetch('/api/vehicles')
-            .then(res => res.json())
-            .then(data => {
-                if (data.records) {
-                    const list = data.records.map((r: any) => ({ id: r.id, title: getRecordName(r) }));
-                    setVehiclesList(list);
-                    console.log("Vehicles loaded:", list);
-                }
-            })
-            .catch(err => console.error("Error fetching vehicles:", err));
+        fetch('/api/vehicles').then(res => res.json()).then(data => {
+            if (data.records) setVehiclesList(data.records.map((r: any) => ({ id: r.id, title: getRecordName(r) })));
+        }).catch(console.error);
     }
   }, [open])
 
@@ -311,64 +361,37 @@ export function NewRideDialog({ onRideCreated }: { onRideCreated: () => void }) 
                   </div>
                 </div>
 
-                {/* סוג רכב - שדה מקושר (רשימה דינמית) */}
+                {/* סוג רכב - השלמה אוטומטית */}
                 <div className="space-y-2">
-                  <Label htmlFor="vehicleType" className="text-right block">סוג רכב</Label>
-                  <Input 
-                    id="vehicleType" 
-                    name="vehicleType" 
-                    list="vehicleTypes" 
+                  <Label className="text-right block">סוג רכב</Label>
+                  <AutoComplete 
+                    options={vehiclesList} 
                     value={formData.vehicleType} 
-                    onChange={handleChange} 
-                    className="text-right" 
-                    placeholder="בחר או הקלד סוג רכב..."
-                    autoComplete="off"
+                    onChange={(val) => setFormData(prev => ({ ...prev, vehicleType: val }))} 
+                    placeholder="בחר או הקלד סוג רכב..." 
                   />
-                  <datalist id="vehicleTypes">
-                    {vehiclesList.map((item, idx) => (
-                        <option key={idx} value={item.title} />
-                    ))}
-                  </datalist>
                 </div>
 
-                {/* שם לקוח - שדה מקושר (רשימה דינמית) */}
+                {/* שם לקוח - השלמה אוטומטית */}
                 <div className="space-y-2">
-                  <Label htmlFor="customer" className="text-right block">שם לקוח</Label>
-                  <Input 
-                    id="customer" 
-                    name="customer" 
-                    list="customers" 
+                  <Label className="text-right block">שם לקוח</Label>
+                  <AutoComplete 
+                    options={customersList} 
                     value={formData.customer} 
-                    onChange={handleChange} 
-                    className="text-right" 
-                    placeholder="בחר או הקלד לקוח..."
-                    autoComplete="off"
+                    onChange={(val) => setFormData(prev => ({ ...prev, customer: val }))} 
+                    placeholder="בחר או הקלד לקוח..." 
                   />
-                  <datalist id="customers">
-                    {customersList.map((item, idx) => (
-                        <option key={idx} value={item.title} />
-                    ))}
-                  </datalist>
                 </div>
 
-                {/* שם נהג - שדה מקושר (רשימה דינמית) */}
+                {/* שם נהג - השלמה אוטומטית */}
                 <div className="space-y-2">
-                  <Label htmlFor="driver" className="text-right block">שם נהג</Label>
-                  <Input 
-                    id="driver" 
-                    name="driver" 
-                    list="drivers" 
+                  <Label className="text-right block">שם נהג</Label>
+                  <AutoComplete 
+                    options={driversList} 
                     value={formData.driver} 
-                    onChange={handleChange} 
-                    className="text-right" 
-                    placeholder="בחר או הקלד נהג..."
-                    autoComplete="off"
+                    onChange={(val) => setFormData(prev => ({ ...prev, driver: val }))} 
+                    placeholder="בחר או הקלד נהג..." 
                   />
-                  <datalist id="drivers">
-                    {driversList.map((item, idx) => (
-                        <option key={idx} value={item.title} />
-                    ))}
-                  </datalist>
                 </div>
 
                 {/* מספר רכב */}
@@ -397,65 +420,34 @@ export function NewRideDialog({ onRideCreated }: { onRideCreated: () => void }) 
 
               {/* === טאב 2: מחירים === */}
               <TabsContent value="prices" className="space-y-6 mt-0">
-                
-                {/* הגדרת מע"מ */}
                 <div className="flex items-center gap-2 p-2 bg-secondary/30 rounded-md w-fit">
                     <Label htmlFor="vatRate">אחוז מע"מ:</Label>
-                    <Input 
-                        id="vatRate" 
-                        value={vatRate} 
-                        onChange={(e) => setVatRate(e.target.value)} 
-                        className="w-16 h-8 text-center" 
-                    />
+                    <Input id="vatRate" value={vatRate} onChange={(e) => setVatRate(e.target.value)} className="w-16 h-8 text-center" />
                     <span className="text-sm">%</span>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* צד לקוח */}
                     <div className="space-y-4 p-4 border rounded-lg bg-blue-50/50">
                         <h3 className="font-bold text-blue-700 text-center border-b pb-2">מחיר לקוח</h3>
-                        
                         <div className="space-y-2">
                             <Label>לפני מע"מ</Label>
-                            <Input 
-                                type="number" 
-                                value={prices.clientExcl} 
-                                onChange={(e) => handlePriceChange(e, 'excl', 'client')}
-                                className="text-right bg-white"
-                            />
+                            <Input type="number" value={prices.clientExcl} onChange={(e) => handlePriceChange(e, 'excl', 'client')} className="text-right bg-white" />
                         </div>
                         <div className="space-y-2">
                             <Label>כולל מע"מ</Label>
-                            <Input 
-                                type="number" 
-                                value={prices.clientIncl} 
-                                onChange={(e) => handlePriceChange(e, 'incl', 'client')}
-                                className="text-right font-bold bg-white"
-                            />
+                            <Input type="number" value={prices.clientIncl} onChange={(e) => handlePriceChange(e, 'incl', 'client')} className="text-right font-bold bg-white" />
                         </div>
                     </div>
 
-                    {/* צד נהג */}
                     <div className="space-y-4 p-4 border rounded-lg bg-orange-50/50">
                         <h3 className="font-bold text-orange-700 text-center border-b pb-2">מחיר נהג</h3>
-                        
                         <div className="space-y-2">
                             <Label>לפני מע"מ</Label>
-                            <Input 
-                                type="number" 
-                                value={prices.driverExcl} 
-                                onChange={(e) => handlePriceChange(e, 'excl', 'driver')}
-                                className="text-right bg-white"
-                            />
+                            <Input type="number" value={prices.driverExcl} onChange={(e) => handlePriceChange(e, 'excl', 'driver')} className="text-right bg-white" />
                         </div>
                         <div className="space-y-2">
                             <Label>כולל מע"מ</Label>
-                            <Input 
-                                type="number" 
-                                value={prices.driverIncl} 
-                                onChange={(e) => handlePriceChange(e, 'incl', 'driver')}
-                                className="text-right font-bold bg-white"
-                            />
+                            <Input type="number" value={prices.driverIncl} onChange={(e) => handlePriceChange(e, 'incl', 'driver')} className="text-right font-bold bg-white" />
                         </div>
                     </div>
                 </div>

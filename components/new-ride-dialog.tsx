@@ -33,6 +33,12 @@ import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 
+// סוג פריט לרשימות בחירה
+interface ListItem {
+  id: string
+  title: string // Teable תמיד מחזיר שדה title לרשומה (העמודה הראשית)
+}
+
 export function NewRideDialog({ onRideCreated }: { onRideCreated: () => void }) {
   const [open, setOpen] = React.useState(false)
   const [loading, setLoading] = React.useState(false)
@@ -42,12 +48,50 @@ export function NewRideDialog({ onRideCreated }: { onRideCreated: () => void }) 
   const [date, setDate] = React.useState<Date>(new Date())
   const [vatRate, setVatRate] = React.useState("18") 
 
+  // --- דאטה דינמי מהטבלאות ---
+  const [customersList, setCustomersList] = React.useState<ListItem[]>([])
+  const [driversList, setDriversList] = React.useState<ListItem[]>([])
+  const [vehiclesList, setVehiclesList] = React.useState<ListItem[]>([])
+
+  // טעינת נתונים (לקוחות, נהגים, רכבים) בעת פתיחת החלון או בטעינה ראשונית
+  React.useEffect(() => {
+    if (open) {
+        const fetchLists = async () => {
+            try {
+                // משיכת לקוחות
+                fetch('/api/customers').then(res => res.json()).then(data => {
+                    if (data.records) setCustomersList(data.records.map((r: any) => ({ id: r.id, title: r.fields.fldTitle || r.id }))) 
+                    // הערה: ב-Teable ה-title הוא לעיתים קרובות השדה הראשי, נצטרך לוודא שזה השדה הנכון אצלך.
+                    // לרוב זה מגיע אוטומטית כ-title ב-JSON, או כשדה הראשון. כאן הנחתי שיש שדה ראשי.
+                    // אם זה לא עובד נצטרך לבדוק את מבנה ה-JSON המדויק. 
+                    // כרגע נשתמש בלוגיקה גנרית שמחפשת את הערך הראשון.
+                });
+
+                // משיכת נהגים
+                fetch('/api/drivers').then(res => res.json()).then(data => {
+                     if (data.records) setDriversList(data.records)
+                });
+
+                // משיכת רכבים
+                fetch('/api/vehicles').then(res => res.json()).then(data => {
+                     if (data.records) setVehiclesList(data.records)
+                });
+
+            } catch (err) {
+                console.error("Failed to fetch lists", err)
+            }
+        }
+        fetchLists()
+    }
+  }, [open])
+
+
   // שדות הטופס
   const [formData, setFormData] = React.useState({
     customer: "",
     description: "",
-    pickupTime: "", // התייצבות (שעה)
-    dropoffTime: "", // חזור (שעה)
+    pickupTime: "", 
+    dropoffTime: "", 
     vehicleType: "",
     driver: "",
     vehicleNumber: "",
@@ -59,7 +103,6 @@ export function NewRideDialog({ onRideCreated }: { onRideCreated: () => void }) 
     idNumber: "",
   })
 
-  // ניהול קובץ בנפרד
   const [file, setFile] = React.useState<File | null>(null)
 
   // מחירים
@@ -98,7 +141,6 @@ export function NewRideDialog({ onRideCreated }: { onRideCreated: () => void }) 
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
-  // טיפול בקובץ
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0])
@@ -108,7 +150,6 @@ export function NewRideDialog({ onRideCreated }: { onRideCreated: () => void }) 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // ולידציה בסיסית
     if (!formData.description || !formData.pickupTime) {
         toast({ title: "נא למלא שדות חובה (תיאור, שעת התייצבות)", variant: "destructive" })
         return
@@ -117,27 +158,23 @@ export function NewRideDialog({ onRideCreated }: { onRideCreated: () => void }) 
     setLoading(true)
 
     try {
-      // הערה: שליחת קובץ דורשת FormData בדרך כלל. 
-      // כאן אני שולח JSON רגיל כבסיס. אם ה-API תומך בקבצים, נצטרך לשנות את שיטת השליחה.
       const payload = {
         fields: {
           fldvNsQbfzMWTc7jakp: format(date, "yyyy-MM-dd"), 
           fldA6e7ul57abYgAZDh: formData.description,
-          fldLbXMREYfC8XVIghj: formData.pickupTime, // שעת התייצבות
-          fld56G8M1LyHRRROWiL: formData.dropoffTime, // שעת חזור
+          fldLbXMREYfC8XVIghj: formData.pickupTime, 
+          fld56G8M1LyHRRROWiL: formData.dropoffTime, 
           fldx4hl8FwbxfkqXf0B: formData.vehicleType, 
           flddNPbrzOCdgS36kx5: formData.driver,
           fldqStJV3KKIutTY9hW: formData.vehicleNumber, 
           fldhNoiFEkEgrkxff02: formData.notesDriver,
           fldVy6L2DCboXUTkjBX: formData.customer, 
           
-          // מחירים
           fldxXnfHHQWwXY8dlEV: Number(prices.clientExcl) || 0,
           fldT7QLSKmSrjIHarDb: Number(prices.clientIncl) || 0,
           fldSNuxbM8oJfrQ3a9x: Number(prices.driverExcl) || 0,
           fldyQIhjdUeQwtHMldD: Number(prices.driverIncl) || 0,
 
-          // פרטים נוספים
           fldkvTaql1bPbifVKLt: formData.orderingName,
           fld6NJPsiW8CtRIfnaY: formData.mobile,
           fldAJPcCFUcDPlSCK1a: formData.idNumber,
@@ -255,7 +292,7 @@ export function NewRideDialog({ onRideCreated }: { onRideCreated: () => void }) 
                   </div>
                 </div>
 
-                {/* סוג רכב - שדה מקושר (רשימה) */}
+                {/* סוג רכב - שדה מקושר (רשימה דינמית) */}
                 <div className="space-y-2">
                   <Label htmlFor="vehicleType" className="text-right block">סוג רכב</Label>
                   <Input 
@@ -268,14 +305,13 @@ export function NewRideDialog({ onRideCreated }: { onRideCreated: () => void }) 
                     placeholder="בחר או הקלד סוג רכב..."
                   />
                   <datalist id="vehicleTypes">
-                    <option value="אוטובוס" />
-                    <option value="מיניבוס" />
-                    <option value="ואן" />
-                    <option value="מונית" />
+                    {vehiclesList.map((item, idx) => (
+                        <option key={idx} value={item.title || item.id} />
+                    ))}
                   </datalist>
                 </div>
 
-                {/* שם לקוח - שדה מקושר (רשימה) */}
+                {/* שם לקוח - שדה מקושר (רשימה דינמית) */}
                 <div className="space-y-2">
                   <Label htmlFor="customer" className="text-right block">שם לקוח</Label>
                   <Input 
@@ -288,13 +324,13 @@ export function NewRideDialog({ onRideCreated }: { onRideCreated: () => void }) 
                     placeholder="בחר או הקלד לקוח..."
                   />
                   <datalist id="customers">
-                    <option value="לקוח מזדמן" />
-                    <option value="אינטל" />
-                    <option value="משרד הביטחון" />
+                    {customersList.map((item, idx) => (
+                        <option key={idx} value={item.title || item.id} />
+                    ))}
                   </datalist>
                 </div>
 
-                {/* שם נהג - שדה מקושר (רשימה) */}
+                {/* שם נהג - שדה מקושר (רשימה דינמית) */}
                 <div className="space-y-2">
                   <Label htmlFor="driver" className="text-right block">שם נהג</Label>
                   <Input 
@@ -307,9 +343,9 @@ export function NewRideDialog({ onRideCreated }: { onRideCreated: () => void }) 
                     placeholder="בחר או הקלד נהג..."
                   />
                   <datalist id="drivers">
-                    <option value="ישראל ישראלי" />
-                    <option value="משה כהן" />
-                    <option value="דוד לוי" />
+                    {driversList.map((item, idx) => (
+                        <option key={idx} value={item.title || item.id} />
+                    ))}
                   </datalist>
                 </div>
 

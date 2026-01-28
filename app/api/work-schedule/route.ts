@@ -18,6 +18,7 @@ export async function GET(request: Request) {
     let endpoint = `${API_URL}/api/table/${TABLE_ID}/record?take=${take}&fieldKeyType=id`;
 
     if (dateParam) {
+      // סינון לפי תאריך
       const filterObj = {
         operator: "and",
         filterSet: [
@@ -130,9 +131,10 @@ export async function PATCH(request: Request) {
   }
 }
 
-// --- DELETE: מחיקת רשומה (תיקון) ---
+// --- DELETE: מחיקת רשומה (מתוקן) ---
 export async function DELETE(request: Request) {
   try {
+    // מקבלים את ה-ID מהכתובת (מה שהדפדפן שולח)
     const { searchParams } = new URL(request.url);
     const recordId = searchParams.get('recordId');
 
@@ -141,34 +143,33 @@ export async function DELETE(request: Request) {
 
     console.log(`🗑️ Deleting record ${recordId}...`);
 
-    // התיקון: שליחת recordIds בתוך ה-URL במקום ב-Body
-    const endpoint = `${API_URL}/api/table/${TABLE_ID}/record?recordIds=${recordId}`;
+    // Teable דורש את המחיקה ב-Body, לא ב-URL
+    const endpoint = `${API_URL}/api/table/${TABLE_ID}/record`;
 
     const response = await fetch(endpoint, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${API_KEY}`,
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json', // חובה!
       },
+      // שולחים את ה-ID בתוך רשימה בגוף הבקשה
+      body: JSON.stringify({
+        recordIds: [recordId] 
+      }),
       cache: 'no-store'
     });
 
     if (!response.ok) {
-      // אם יש שגיאה, ננסה לקרוא אותה בזהירות
-      try {
-          const errorData = await response.json();
-          console.error("❌ Delete Error JSON:", errorData);
-          return NextResponse.json({ error: "Delete Failed", details: errorData }, { status: response.status });
-      } catch (e) {
-          console.error("❌ Delete Error Text:", await response.text());
-          return NextResponse.json({ error: "Delete Failed" }, { status: response.status });
-      }
+      const errorData = await response.json();
+      console.error("❌ Delete Error from Teable:", errorData);
+      return NextResponse.json({ error: "Delete Failed", details: errorData }, { status: response.status });
     }
 
     const data = await response.json();
     return NextResponse.json(data);
 
   } catch (error) {
+    console.error("❌ Internal Delete Error:", error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

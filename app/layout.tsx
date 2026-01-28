@@ -7,6 +7,7 @@ import { Toaster } from "@/components/ui/toaster"
 const varela = Varela_Round({ 
   subsets: ["hebrew", "latin"], 
   weight: "400",
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
@@ -21,7 +22,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="he" dir="rtl">
-      {/* החלת הפונט על כל האתר */}
       <body className={varela.className}>
         {children}
         <Toaster />

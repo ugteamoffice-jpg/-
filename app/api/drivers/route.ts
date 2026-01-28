@@ -1,30 +1,25 @@
-import { type NextRequest, NextResponse } from "next/server"
-import { teableClient } from "@/lib/teable-client"
+import { NextResponse } from 'next/server';
 
-const DRIVERS_TABLE_ID = "tbl39DxszH3whkjzovd" // ה-ID החדש מהקישור הראשון
-
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    const searchParams = request.nextUrl.searchParams
-    const search = searchParams.get("search") || ""
-    // טעינת כל הנהגים
-    const data = await teableClient.getRecords(DRIVERS_TABLE_ID, {
-      fieldKeyType: "id",
-      take: 1000
-    })
-    return NextResponse.json({ records: data.records || [], total: data.records?.length || 0 })
+    const TABLE_ID = 'tbl39DxszH3whkjzovd'; // מזהה טבלת נהגים
+    const API_URL = 'https://teable-production-bedd.up.railway.app';
+    const API_KEY = process.env.TEABLE_API_KEY;
+
+    const response = await fetch(`${API_URL}/api/table/${TABLE_ID}/record?take=1000`, {
+      headers: {
+        'Authorization': `Bearer ${API_KEY}`,
+      },
+      cache: 'no-store'
+    });
+
+    if (!response.ok) {
+      return NextResponse.json({ error: 'Failed to fetch drivers' }, { status: response.status });
+    }
+
+    const data = await response.json();
+    return NextResponse.json(data);
   } catch (error) {
-    console.error("Error fetching drivers:", error)
-    return NextResponse.json({ error: "Failed to fetch drivers" }, { status: 500 })
-  }
-}
-
-export async function POST(request: NextRequest) {
-  try {
-    const { fields } = await request.json()
-    const data = await teableClient.createRecord(DRIVERS_TABLE_ID, fields)
-    return NextResponse.json(data)
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

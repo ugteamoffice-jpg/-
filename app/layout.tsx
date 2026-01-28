@@ -4,7 +4,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/toaster"
 import { cn } from "@/lib/utils"
 
-// הגדרת הפונט
+// טעינת הפונט
 const varela = Varela_Round({ 
   subsets: ["hebrew", "latin"], 
   weight: "400",
@@ -22,7 +22,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="he" dir="rtl">
-      <body className={cn("min-h-screen bg-background antialiased", varela.className)}>
+      {/* אנחנו שמים את הפונט (varela.className) ישירות פה.
+         זה עובד תמיד, גם בלי tailwind.config.ts
+      */}
+      <body className={cn("min-h-screen antialiased", varela.className)}>
         {children}
         <Toaster />
       </body>

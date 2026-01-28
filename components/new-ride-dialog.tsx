@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Plus, Loader2, Save, Pencil } from "lucide-react"
+import { Plus, Loader2, Save, Pencil, Upload } from "lucide-react"
 import { format } from "date-fns"
 
 import { Button } from "@/components/ui/button"
@@ -36,16 +36,15 @@ const FIELDS = {
   PRICE_DRIVER_INCL: 'fldyQIhjdUeQwtHMldD',
   ORDER_NAME: 'fldkvTaql1bPbifVKLt',
   MOBILE: 'fld6NJPsiW8CtRIfnaY',
-  ID_NUM: 'fldAJPcCFUcDPlSCK1a'
+  ID_NUM: 'fldAJPcCFUcDPlSCK1a',
+  // כאן אמור להיות ה-ID של שדה הקובץ, כרגע זה רק UI
 }
 
 interface ListItem { id: string; title: string }
 
-// --- AutoComplete (עם התיקון נגד קריסות) ---
+// --- AutoComplete (מוגן מקריסות) ---
 function AutoComplete({ options, value, onChange, placeholder }: any) {
   const [show, setShow] = React.useState(false)
-  
-  // התיקון: מבטיח שזה תמיד טקסט לפני שבודקים
   const safeValue = String(value || "").toLowerCase();
   
   const filtered = options.filter((o: any) => {
@@ -87,7 +86,10 @@ export function RideDialog({ onRideSaved, initialData, triggerChild, open: contr
 
   // State
   const [dateStr, setDateStr] = React.useState(format(new Date(), "yyyy-MM-dd"))
-  const [vatRate, setVatRate] = React.useState("17") // מע"מ ברירת מחדל
+  
+  // שני משתני מע"מ נפרדים - ברירת מחדל 18%
+  const [vatClient, setVatClient] = React.useState("18")
+  const [vatDriver, setVatDriver] = React.useState("18")
   
   const [lists, setLists] = React.useState<{customers: ListItem[], drivers: ListItem[], vehicles: ListItem[]}>({ customers: [], drivers: [], vehicles: [] })
   
@@ -141,13 +143,17 @@ export function RideDialog({ onRideSaved, initialData, triggerChild, open: contr
         })
         setPrices({ ce: "", ci: "", de: "", di: "" })
         setDateStr(format(new Date(), "yyyy-MM-dd"))
+        setVatClient("18") // איפוס ל-18
+        setVatDriver("18") // איפוס ל-18
     }
   }, [open, initialData])
 
-  // חישוב מע"מ
+  // חישוב מע"מ (עכשיו מקבל את המע"מ הספציפי לכל צד)
   const calculateVat = (value: string, type: 'excl' | 'incl', field: 'client' | 'driver') => {
     const numVal = parseFloat(value)
-    const rate = 1 + (parseFloat(vatRate) / 100)
+    // בוחרים את אחוז המע"מ הנכון לפי השדה
+    const currentVatRate = field === 'client' ? vatClient : vatDriver
+    const rate = 1 + (parseFloat(currentVatRate) / 100)
     
     if (isNaN(numVal)) {
       if (field === 'client') setPrices(prev => ({ ...prev, ce: "", ci: "" }))
@@ -168,6 +174,26 @@ export function RideDialog({ onRideSaved, initialData, triggerChild, open: contr
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // --- בדיקת שדות חובה ---
+    if (!form.customer || form.customer.trim() === "") {
+        toast({
+            title: "שגיאה",
+            description: "שדה 'לקוח' הוא חובה!",
+            variant: "destructive"
+        })
+        return;
+    }
+    if (!form.vehicleType || form.vehicleType.trim() === "") {
+        toast({
+            title: "שגיאה",
+            description: "שדה 'סוג רכב' הוא חובה!",
+            variant: "destructive"
+        })
+        return;
+    }
+    // -----------------------
+
     setLoading(true)
     const findId = (val: string, list: ListItem[]) => { const item = list.find(x => x.title === val); return item ? [item.id] : undefined }
 
@@ -227,30 +253,30 @@ export function RideDialog({ onRideSaved, initialData, triggerChild, open: contr
             
             <div className="flex-1 overflow-y-auto p-4 border rounded mt-2">
               <TabsContent value="details" className="space-y-4">
-                <div className="space-y-1"><Label>תאריך</Label><Input type="date" value={dateStr} onChange={e => setDateStr(e.target.value)} className="text-right"/></div>
-                <div className="space-y-1"><Label>לקוח</Label><AutoComplete options={lists.customers} value={form.customer} onChange={(v: string) => setForm(p => ({...p, customer: v}))} placeholder="בחר לקוח"/></div>
+                <div className="space-y-1"><Label>תאריך <span className="text-red-500">*</span></Label><Input type="date" value={dateStr} onChange={e => setDateStr(e.target.value)} className="text-right"/></div>
+                <div className="space-y-1"><Label>לקוח <span className="text-red-500">*</span></Label><AutoComplete options={lists.customers} value={form.customer} onChange={(v: string) => setForm(p => ({...p, customer: v}))} placeholder="בחר לקוח"/></div>
                 <div className="space-y-1"><Label>תיאור</Label><Textarea value={form.description} onChange={e => setForm(p => ({...p, description: e.target.value}))} className="text-right"/></div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1"><Label>התייצבות</Label><Input type="time" value={form.pickup} onChange={e => setForm(p => ({...p, pickup: e.target.value}))}/></div>
                   <div className="space-y-1"><Label>חזור</Label><Input type="time" value={form.dropoff} onChange={e => setForm(p => ({...p, dropoff: e.target.value}))}/></div>
                 </div>
                 <div className="space-y-1"><Label>נהג</Label><AutoComplete options={lists.drivers} value={form.driver} onChange={(v: string) => setForm(p => ({...p, driver: v}))} placeholder="בחר נהג"/></div>
-                <div className="space-y-1"><Label>רכב</Label><AutoComplete options={lists.vehicles} value={form.vehicleType} onChange={(v: string) => setForm(p => ({...p, vehicleType: v}))} placeholder="בחר רכב"/></div>
+                <div className="space-y-1"><Label>סוג רכב <span className="text-red-500">*</span></Label><AutoComplete options={lists.vehicles} value={form.vehicleType} onChange={(v: string) => setForm(p => ({...p, vehicleType: v}))} placeholder="בחר רכב"/></div>
                 <div className="space-y-1"><Label>מס' רכב</Label><Input value={form.vehicleNum} onChange={e => setForm(p => ({...p, vehicleNum: e.target.value}))} className="text-right"/></div>
                 <div className="space-y-1"><Label>הערות נהג</Label><Textarea value={form.notes} onChange={e => setForm(p => ({...p, notes: e.target.value}))} className="text-right"/></div>
               </TabsContent>
 
-              {/* --- החזרתי את העיצוב המלא! --- */}
               <TabsContent value="prices" className="space-y-6">
-                 <div className="flex items-center gap-2 p-2 bg-secondary/30 rounded-md w-fit">
-                    <Label>מע"מ %:</Label>
-                    <Input value={vatRate} onChange={(e) => setVatRate(e.target.value)} className="w-16 h-8 text-center" />
-                 </div>
-                 
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* צד לקוח - כחול */}
                     <div className="space-y-4 p-4 border rounded-lg bg-blue-50/50">
-                        <h3 className="font-bold text-blue-700 text-center border-b pb-2">מחיר לקוח</h3>
+                        <div className="flex justify-between items-center border-b border-blue-200 pb-2">
+                            <h3 className="font-bold text-blue-700">מחיר לקוח</h3>
+                            <div className="flex items-center gap-1">
+                                <Label className="text-xs">מע"מ %:</Label>
+                                <Input value={vatClient} onChange={(e) => setVatClient(e.target.value)} className="w-12 h-6 text-center text-xs bg-white" />
+                            </div>
+                        </div>
                         <div className="space-y-2">
                             <Label>לפני מע"מ</Label>
                             <Input type="number" value={prices.ce} onChange={(e) => calculateVat(e.target.value, 'excl', 'client')} className="text-right bg-white" />
@@ -263,7 +289,13 @@ export function RideDialog({ onRideSaved, initialData, triggerChild, open: contr
 
                     {/* צד נהג - כתום */}
                     <div className="space-y-4 p-4 border rounded-lg bg-orange-50/50">
-                        <h3 className="font-bold text-orange-700 text-center border-b pb-2">מחיר נהג</h3>
+                        <div className="flex justify-between items-center border-b border-orange-200 pb-2">
+                            <h3 className="font-bold text-orange-700">מחיר נהג</h3>
+                             <div className="flex items-center gap-1">
+                                <Label className="text-xs">מע"מ %:</Label>
+                                <Input value={vatDriver} onChange={(e) => setVatDriver(e.target.value)} className="w-12 h-6 text-center text-xs bg-white" />
+                            </div>
+                        </div>
                         <div className="space-y-2">
                             <Label>לפני מע"מ</Label>
                             <Input type="number" value={prices.de} onChange={(e) => calculateVat(e.target.value, 'excl', 'driver')} className="text-right bg-white" />
@@ -277,13 +309,20 @@ export function RideDialog({ onRideSaved, initialData, triggerChild, open: contr
               </TabsContent>
 
               <TabsContent value="extra" className="space-y-4">
-                <div className="space-y-1"><Label>מזמין</Label><Input value={form.orderName} onChange={e => setForm(p => ({...p, orderName: e.target.value}))} className="text-right"/></div>
+                <div className="space-y-1"><Label>שם מזמין</Label><Input value={form.orderName} onChange={e => setForm(p => ({...p, orderName: e.target.value}))} className="text-right"/></div>
                 <div className="space-y-1"><Label>נייד</Label><Input value={form.mobile} onChange={e => setForm(p => ({...p, mobile: e.target.value}))} className="text-right"/></div>
                 <div className="space-y-1"><Label>ת.ז</Label><Input value={form.idNum} onChange={e => setForm(p => ({...p, idNum: e.target.value}))} className="text-right"/></div>
+                
+                {/* --- הוספתי חזרה את שדה טופס ההזמנה --- */}
+                <div className="space-y-2 pt-4 border-t mt-4">
+                    <Label className="flex items-center gap-2 font-bold"><Upload className="w-4 h-4"/> טופס הזמנה</Label>
+                    <Input type="file" className="cursor-pointer bg-slate-50"/>
+                    <p className="text-xs text-muted-foreground">העלאת קבצים עדיין בפיתוח (כרגע רק בחירת קובץ).</p>
+                </div>
               </TabsContent>
             </div>
           </Tabs>
-          <DialogFooter className="mt-4"><Button variant="outline" onClick={() => setOpen(false)}>ביטול</Button><Button type="submit">{loading ? <Loader2 className="animate-spin"/> : (isEdit ? <Pencil className="w-4 h-4 ml-2"/> : <Save className="w-4 h-4 ml-2"/>)} {isEdit ? "עדכן" : "צור"}</Button></DialogFooter>
+          <DialogFooter className="mt-4"><Button variant="outline" type="button" onClick={() => setOpen(false)}>ביטול</Button><Button type="submit">{loading ? <Loader2 className="animate-spin"/> : (isEdit ? <Pencil className="w-4 h-4 ml-2"/> : <Save className="w-4 h-4 ml-2"/>)} {isEdit ? "עדכן" : "צור"}</Button></DialogFooter>
         </form>
       </DialogContent>
     </Dialog>

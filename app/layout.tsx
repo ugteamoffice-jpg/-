@@ -3,10 +3,11 @@ import { Varela_Round } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster"
 
-// הגדרת הפונט
+// טעינת הפונט
 const varela = Varela_Round({ 
   subsets: ["hebrew", "latin"], 
   weight: "400",
+  variable: "--font-varela", // הגדרת משתנה CSS
 });
 
 export const metadata: Metadata = {
@@ -21,8 +22,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="he" dir="rtl">
-      {/* כאן אנחנו מכריחים את הפונט על כל הגוף של האתר */}
-      <body className={varela.className}>
+      {/* אנחנו מזריקים את המשתנה לשורש האתר */}
+      <body className={varela.variable}>
         {children}
         <Toaster />
       </body>

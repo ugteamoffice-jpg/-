@@ -3,7 +3,7 @@
 import * as React from "react"
 import { Plus, Loader2, Save, Pencil, Upload, Calendar as CalendarIcon } from "lucide-react"
 import { format } from "date-fns"
-import { he } from "date-fns/locale" // חשוב לעברית
+import { he } from "date-fns/locale"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -19,8 +19,8 @@ import {
 } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
-import { Calendar } from "@/components/ui/calendar" // הלוח שנה היפה
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover" // החלון הקופץ
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
 
 // מזהי השדות ב-Teable
@@ -88,7 +88,7 @@ export function RideDialog({ onRideSaved, initialData, triggerChild, open: contr
 
   const isEdit = !!initialData
 
-  // State - שיניתי לשימוש ב-Date object בשביל הלוח שנה
+  // State
   const [date, setDate] = React.useState<Date | undefined>(new Date())
   
   // מע"מ
@@ -127,7 +127,6 @@ export function RideDialog({ onRideSaved, initialData, triggerChild, open: contr
     if (open && initialData) {
       const f = initialData.fields
       
-      // המרה ל-Date object
       if (f[FIELDS.DATE]) {
           const d = new Date(f[FIELDS.DATE]);
           if (!isNaN(d.getTime())) {
@@ -202,24 +201,32 @@ export function RideDialog({ onRideSaved, initialData, triggerChild, open: contr
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!form.customer || form.customer.trim() === "") {
-        toast({ title: "שגיאה", description: "שדה 'לקוח' הוא חובה!", variant: "destructive" })
-        return;
+    // --- ולידציה רק ביצירה חדשה (!isEdit) ---
+    if (!isEdit) {
+        if (!date) {
+             toast({ title: "שגיאה", description: "שדה 'תאריך' הוא חובה!", variant: "destructive" })
+             return;
+        }
+        if (!form.customer || form.customer.trim() === "") {
+            toast({ title: "שגיאה", description: "שדה 'שם לקוח' הוא חובה!", variant: "destructive" })
+            return;
+        }
+        if (!form.description || form.description.trim() === "") {
+            toast({ title: "שגיאה", description: "שדה 'תיאור' הוא חובה!", variant: "destructive" })
+            return;
+        }
+        if (!form.pickup || form.pickup.trim() === "") {
+            toast({ title: "שגיאה", description: "שדה 'התייצבות' הוא חובה!", variant: "destructive" })
+            return;
+        }
     }
-    if (!form.vehicleType || form.vehicleType.trim() === "") {
-        toast({ title: "שגיאה", description: "שדה 'סוג רכב' הוא חובה!", variant: "destructive" })
-        return;
-    }
-    if (!date) {
-         toast({ title: "שגיאה", description: "חובה לבחור תאריך!", variant: "destructive" })
-         return;
-    }
+    // ----------------------------------------
 
     setLoading(true)
     const findId = (val: string, list: ListItem[]) => { const item = list.find(x => x.title === val); return item ? [item.id] : undefined }
 
     const payload = {
-      [FIELDS.DATE]: format(date, "yyyy-MM-dd"), // המרה לפורמט שהשרת אוהב
+      [FIELDS.DATE]: date ? format(date, "yyyy-MM-dd") : null,
       [FIELDS.DESCRIPTION]: form.description,
       [FIELDS.PICKUP_TIME]: form.pickup,
       [FIELDS.DROPOFF_TIME]: form.dropoff,
@@ -276,9 +283,8 @@ export function RideDialog({ onRideSaved, initialData, triggerChild, open: contr
             <div className="flex-1 overflow-y-auto p-4 border rounded mt-2">
               <TabsContent value="details" className="space-y-4">
                 
-                {/* --- החלפנו את ה-Input ברכיב הלוח שנה היפה --- */}
                 <div className="space-y-1">
-                    <Label>תאריך <span className="text-red-500">*</span></Label>
+                    <Label>תאריך {!isEdit && <span className="text-red-500">*</span>}</Label>
                     <Popover>
                         <PopoverTrigger asChild>
                         <Button variant={"outline"} className={cn("w-full justify-start text-right font-normal", !date && "text-muted-foreground")}>
@@ -299,14 +305,26 @@ export function RideDialog({ onRideSaved, initialData, triggerChild, open: contr
                     </Popover>
                 </div>
                 
-                <div className="space-y-1"><Label>לקוח <span className="text-red-500">*</span></Label><AutoComplete options={lists.customers} value={form.customer} onChange={(v: string) => setForm(p => ({...p, customer: v}))} placeholder="בחר לקוח"/></div>
-                <div className="space-y-1"><Label>תיאור</Label><Textarea value={form.description} onChange={e => setForm(p => ({...p, description: e.target.value}))} className="text-right"/></div>
+                <div className="space-y-1">
+                    <Label>שם לקוח {!isEdit && <span className="text-red-500">*</span>}</Label>
+                    <AutoComplete options={lists.customers} value={form.customer} onChange={(v: string) => setForm(p => ({...p, customer: v}))} placeholder="בחר לקוח"/>
+                </div>
+                
+                <div className="space-y-1">
+                    <Label>תיאור {!isEdit && <span className="text-red-500">*</span>}</Label>
+                    <Textarea value={form.description} onChange={e => setForm(p => ({...p, description: e.target.value}))} className="text-right"/>
+                </div>
+                
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1"><Label>התייצבות</Label><Input type="time" value={form.pickup} onChange={e => setForm(p => ({...p, pickup: e.target.value}))}/></div>
+                  <div className="space-y-1">
+                      <Label>התייצבות {!isEdit && <span className="text-red-500">*</span>}</Label>
+                      <Input type="time" value={form.pickup} onChange={e => setForm(p => ({...p, pickup: e.target.value}))}/>
+                  </div>
                   <div className="space-y-1"><Label>חזור</Label><Input type="time" value={form.dropoff} onChange={e => setForm(p => ({...p, dropoff: e.target.value}))}/></div>
                 </div>
+                
                 <div className="space-y-1"><Label>נהג</Label><AutoComplete options={lists.drivers} value={form.driver} onChange={(v: string) => setForm(p => ({...p, driver: v}))} placeholder="בחר נהג"/></div>
-                <div className="space-y-1"><Label>סוג רכב <span className="text-red-500">*</span></Label><AutoComplete options={lists.vehicles} value={form.vehicleType} onChange={(v: string) => setForm(p => ({...p, vehicleType: v}))} placeholder="בחר רכב"/></div>
+                <div className="space-y-1"><Label>סוג רכב</Label><AutoComplete options={lists.vehicles} value={form.vehicleType} onChange={(v: string) => setForm(p => ({...p, vehicleType: v}))} placeholder="בחר רכב"/></div>
                 <div className="space-y-1"><Label>מס' רכב</Label><Input value={form.vehicleNum} onChange={e => setForm(p => ({...p, vehicleNum: e.target.value}))} className="text-right"/></div>
                 
                 {/* הערות מנהל */}

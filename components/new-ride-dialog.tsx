@@ -42,7 +42,7 @@ const FIELDS = {
 
 interface ListItem { id: string; title: string }
 
-// --- AutoComplete (מוגן) ---
+// --- AutoComplete (מוגן מקריסות) ---
 function AutoComplete({ options, value, onChange, placeholder }: any) {
   const [show, setShow] = React.useState(false)
   const safeValue = String(value || "").toLowerCase();
@@ -87,7 +87,7 @@ export function RideDialog({ onRideSaved, initialData, triggerChild, open: contr
   // State
   const [dateStr, setDateStr] = React.useState(format(new Date(), "yyyy-MM-dd"))
   
-  // מע"מ
+  // שני משתני מע"מ נפרדים - ברירת מחדל 18%
   const [vatClient, setVatClient] = React.useState("18")
   const [vatDriver, setVatDriver] = React.useState("18")
   
@@ -118,24 +118,29 @@ export function RideDialog({ onRideSaved, initialData, triggerChild, open: contr
     }
   }, [open])
 
-  // --- מילוי טופס בעריכה (התיקון נמצא כאן) ---
+  // מילוי טופס בעריכה
   React.useEffect(() => {
     if (open && initialData) {
       const f = initialData.fields
       
-      // תיקון תאריך: אם קיים, נציב אותו
+      // --- תיקון תאריך: המרה בטוחה לפורמט YYYY-MM-DD ---
       if (f[FIELDS.DATE]) {
-          setDateStr(f[FIELDS.DATE]);
+          const d = new Date(f[FIELDS.DATE]);
+          if (!isNaN(d.getTime())) {
+              setDateStr(format(d, "yyyy-MM-dd"));
+          } else {
+              setDateStr(""); 
+          }
       } else {
           setDateStr(format(new Date(), "yyyy-MM-dd"));
       }
+      // ---------------------------------------------------
 
-      // פונקציית עזר משופרת לחילוץ הטקסט מתוך אובייקטים
       const getVal = (v: any) => {
           if (!v) return "";
-          if (Array.isArray(v)) return v[0]?.title || ""; // אם זה מערך של לינקים
-          if (typeof v === 'object') return v.title || ""; // אם זה אובייקט לינק בודד
-          return String(v); // אם זה סתם טקסט
+          if (Array.isArray(v)) return v[0]?.title || "";
+          if (typeof v === 'object') return v.title || "";
+          return String(v);
       }
       
       setForm({
@@ -152,14 +157,11 @@ export function RideDialog({ onRideSaved, initialData, triggerChild, open: contr
         mobile: f[FIELDS.MOBILE] || "",
         idNum: f[FIELDS.ID_NUM] || ""
       })
-      
       setPrices({
         ce: f[FIELDS.PRICE_CLIENT_EXCL] || "", ci: f[FIELDS.PRICE_CLIENT_INCL] || "",
         de: f[FIELDS.PRICE_DRIVER_EXCL] || "", di: f[FIELDS.PRICE_DRIVER_INCL] || ""
       })
-
     } else if (open && !initialData) {
-        // איפוס ביצירה חדשה
         setForm({
             customer: "", description: "", pickup: "", dropoff: "", vehicleType: "",
             driver: "", vehicleNum: "", managerNotes: "", notes: "", orderName: "", mobile: "", idNum: ""

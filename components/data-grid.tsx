@@ -14,7 +14,7 @@ import {
   ColumnOrderState,
   ColumnSizingState,
 } from "@tanstack/react-table"
-import { Calendar as CalendarIcon, Trash2, GripVertical, Settings2, Save, Plus } from "lucide-react"
+import { Calendar as CalendarIcon, Trash2, GripVertical, Settings2, Save } from "lucide-react"
 import { format } from "date-fns"
 import { he } from "date-fns/locale"
 
@@ -30,6 +30,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 
+// --- תיקון: ייבוא השם הנכון (RideDialog) ---
 import { RideDialog } from "@/components/new-ride-dialog"
 
 import { Calendar } from "@/components/ui/calendar"
@@ -50,6 +51,7 @@ import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 import { ScrollArea } from "@/components/ui/scroll-area"
 
+// --- ממשקים ---
 export interface WorkScheduleRecord {
   id: string
   fields: {
@@ -84,6 +86,7 @@ const renderLinkField = (value: any) => {
   return String(value)
 }
 
+// הגדרת העמודות
 export const columns: ColumnDef<WorkScheduleRecord>[] = [
   {
     id: "select",
@@ -98,7 +101,7 @@ export const columns: ColumnDef<WorkScheduleRecord>[] = [
       </div>
     ),
     cell: ({ row }) => (
-      <div className="pr-4" onClick={(e) => e.stopPropagation()}>
+      <div className="pr-4">
         <Checkbox
           checked={row.getIsSelected()}
           onCheckedChange={(value) => row.toggleSelected(!!value)}
@@ -118,7 +121,7 @@ export const columns: ColumnDef<WorkScheduleRecord>[] = [
     id: "sent",
     header: "שלח",
     cell: ({ row }) => (
-      <div className="flex justify-center" onClick={(e) => e.stopPropagation()}>
+      <div className="flex justify-center">
         <Checkbox checked={row.original.fields.fldMv14lt0W7ZBkq1PH as boolean} disabled />
       </div>
     ),
@@ -130,7 +133,7 @@ export const columns: ColumnDef<WorkScheduleRecord>[] = [
     id: "approved",
     header: "מאושר",
     cell: ({ row }) => (
-      <div className="flex justify-center" onClick={(e) => e.stopPropagation()}>
+      <div className="flex justify-center">
         <Checkbox checked={row.original.fields.fldDOBGATSaTi5TxyHB as boolean} disabled />
       </div>
     ),
@@ -247,6 +250,7 @@ export const columns: ColumnDef<WorkScheduleRecord>[] = [
   },
 ]
 
+// --- קומפוננטת דיאלוג ---
 function ColumnReorderDialog({ 
   open, 
   onOpenChange, 
@@ -374,6 +378,7 @@ function ColumnReorderDialog({
   )
 }
 
+// --- הקומפוננטה הראשית ---
 export function DataGrid({ schema }: { schema: any }) {
   const [data, setData] = React.useState<WorkScheduleRecord[]>([])
   const [sorting, setSorting] = React.useState<SortingState>([])
@@ -393,6 +398,7 @@ export function DataGrid({ schema }: { schema: any }) {
 
   const { toast } = useToast()
   
+  // זה State ששומר איזו שורה אנחנו עורכים כרגע
   const [editingRecord, setEditingRecord] = React.useState<WorkScheduleRecord | null>(null)
   
   const [isCalendarOpen, setIsCalendarOpen] = React.useState(false)
@@ -416,6 +422,7 @@ export function DataGrid({ schema }: { schema: any }) {
     fetchData()
   }, [])
 
+  // טעינת הגדרות
   React.useEffect(() => {
     const savedSettings = localStorage.getItem(STORAGE_KEY)
     const defaultOrder = columns.map(c => c.id as string)
@@ -443,6 +450,7 @@ export function DataGrid({ schema }: { schema: any }) {
     }
   }, [])
 
+  // שמירת הגדרות
   React.useEffect(() => {
     if (columnOrder.length > 0) {
       const settingsToSave = {
@@ -473,8 +481,7 @@ export function DataGrid({ schema }: { schema: any }) {
     const recordsToDelete = table.getFilteredSelectedRowModel().rows.map(row => row.original.id)
     try {
       for (const id of recordsToDelete) {
-        const res = await fetch(`/api/work-schedule?recordId=${id}`, { method: "DELETE" })
-        if (!res.ok) throw new Error("Failed to delete")
+        await fetch(`/api/work-schedule/${id}`, { method: "DELETE" })
       }
       toast({ title: "נמחק בהצלחה", description: `${recordsToDelete.length} רשומות נמחקו.` })
       setRowSelection({})
@@ -484,6 +491,7 @@ export function DataGrid({ schema }: { schema: any }) {
     }
   }
 
+  // בעת לחיצה על שורה, אנחנו מכניסים אותה ל-state של העריכה
   const handleRowClick = (record: WorkScheduleRecord) => {
     setEditingRecord(record)
   }
@@ -590,15 +598,8 @@ export function DataGrid({ schema }: { schema: any }) {
             </PopoverContent>
           </Popover>
 
-          <RideDialog 
-              onRideSaved={fetchData} 
-              triggerChild={
-                  <Button className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
-                    <Plus className="h-4 w-4" />
-                    צור נסיעה
-                  </Button>
-              }
-          />
+          {/* תיקון: שימוש ב-RideDialog עבור יצירה חדשה */}
+          <RideDialog onRideSaved={fetchData} />
 
           <div className="flex items-center w-full max-w-sm">
              <Input
@@ -718,6 +719,7 @@ export function DataGrid({ schema }: { schema: any }) {
         </Table>
       </div>
 
+      {/* הדיאלוג לעריכה (נפתח בלחיצה על שורה) */}
       <RideDialog 
         open={!!editingRecord}
         onOpenChange={(isOpen: boolean) => !isOpen && setEditingRecord(null)}

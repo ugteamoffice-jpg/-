@@ -85,7 +85,7 @@ export async function POST(request: Request) {
   }
 }
 
-// --- PATCH: עדכון רשומה קיימת (הוספנו עכשיו) ---
+// --- PATCH: עדכון רשומה קיימת ---
 export async function PATCH(request: Request) {
   try {
     const body = await request.json();
@@ -121,6 +121,46 @@ export async function PATCH(request: Request) {
       const errorData = await response.json();
       console.error("❌ Patch Error:", errorData);
       return NextResponse.json({ error: "Update Failed", details: errorData }, { status: response.status });
+    }
+
+    const data = await response.json();
+    return NextResponse.json(data);
+
+  } catch (error) {
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
+
+// --- DELETE: מחיקת רשומה ---
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const recordId = searchParams.get('recordId');
+
+    if (!API_KEY) return NextResponse.json({ error: 'Missing API Key' }, { status: 500 });
+    if (!recordId) return NextResponse.json({ error: 'Missing Record ID' }, { status: 400 });
+
+    console.log(`🗑️ Deleting record ${recordId}...`);
+
+    // Teable דורש מחיקה באמצעות שליחת מערך של IDs
+    const endpoint = `${API_URL}/api/table/${TABLE_ID}/record`;
+
+    const response = await fetch(endpoint, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        recordIds: [recordId]
+      }),
+      cache: 'no-store'
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("❌ Delete Error:", errorData);
+      return NextResponse.json({ error: "Delete Failed", details: errorData }, { status: response.status });
     }
 
     const data = await response.json();

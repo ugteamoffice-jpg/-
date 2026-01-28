@@ -1,10 +1,6 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster"
-
-// שימוש בפונט Inter מגוגל במקום פונטים מקומיים שגורמים לקריסה
-const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "מערכת ניהול",
@@ -18,7 +14,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="he" dir="rtl">
-      <body className={inter.className}>
+      {/* הורדתי את כל הפונטים החיצוניים. עכשיו זה ישתמש בפונט ברירת המחדל של המחשב */}
+      <body className="antialiased">
         {children}
         <Toaster />
       </body>

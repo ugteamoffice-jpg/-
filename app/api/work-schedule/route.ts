@@ -131,10 +131,10 @@ export async function PATCH(request: Request) {
   }
 }
 
-// --- DELETE: מחיקת רשומה (מתוקן) ---
+// --- DELETE: מחיקת רשומה (הגרסה המתוקנת) ---
 export async function DELETE(request: Request) {
   try {
-    // מקבלים את ה-ID מהכתובת (מה שהדפדפן שולח)
+    // שלב 1: מקבלים את ה-ID מהדפדפן (דרך הכתובת)
     const { searchParams } = new URL(request.url);
     const recordId = searchParams.get('recordId');
 
@@ -143,7 +143,7 @@ export async function DELETE(request: Request) {
 
     console.log(`🗑️ Deleting record ${recordId}...`);
 
-    // Teable דורש את המחיקה ב-Body, לא ב-URL
+    // שלב 2: שולחים ל-Teable בשיטה הבטוחה (דרך ה-Body)
     const endpoint = `${API_URL}/api/table/${TABLE_ID}/record`;
 
     const response = await fetch(endpoint, {
@@ -152,7 +152,7 @@ export async function DELETE(request: Request) {
         'Authorization': `Bearer ${API_KEY}`,
         'Content-Type': 'application/json', // חובה!
       },
-      // שולחים את ה-ID בתוך רשימה בגוף הבקשה
+      // כאן התיקון: שולחים אובייקט JSON עם רשימת המזהים למחיקה
       body: JSON.stringify({
         recordIds: [recordId] 
       }),

@@ -395,7 +395,14 @@ export function RideDialog({ onRideSaved, initialData, triggerChild, open: contr
               </TabsContent>
             </div>
           </Tabs>
-          <DialogFooter className="mt-4"><Button variant="outline" type="button" onClick={() => setOpen(false)}>ביטול</Button><Button type="submit">{loading ? <Loader2 className="animate-spin"/> : (isEdit ? <Pencil className="w-4 h-4 ml-2"/> : <Save className="w-4 h-4 ml-2"/>)} {isEdit ? "עדכן" : "צור"}</Button></DialogFooter>
+          <DialogFooter className="mt-4">
+            <Button variant="outline" type="button" onClick={() => setOpen(false)}>ביטול</Button>
+            <Button type="submit">
+                {loading ? <Loader2 className="animate-spin"/> : (isEdit ? <Pencil className="w-4 h-4 ml-2"/> : <Save className="w-4 h-4 ml-2"/>)}
+                {/* --- הטקסט בכפתור משתנה כאן --- */}
+                {isEdit ? "שמור פרטים" : "צור נסיעה"}
+            </Button>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>

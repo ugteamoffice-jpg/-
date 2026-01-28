@@ -1,26 +1,25 @@
-import { type NextRequest, NextResponse } from "next/server"
-import { teableClient } from "@/lib/teable-client"
+import { NextResponse } from 'next/server';
 
-const CUSTOMERS_TABLE_ID = "tblmUkwbvrUmxI3q1gd" // ה-ID החדש מהקישור השלישי
-
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    const data = await teableClient.getRecords(CUSTOMERS_TABLE_ID, {
-      fieldKeyType: "id",
-      take: 1000,
-    })
-    return NextResponse.json({ records: data.records || [], total: data.total || 0 })
+    const TABLE_ID = 'tblmUkwbvrUmxI3q1gd'; // מזהה טבלת לקוחות
+    const API_URL = 'https://teable-production-bedd.up.railway.app';
+    const API_KEY = process.env.TEABLE_API_KEY;
+
+    const response = await fetch(`${API_URL}/api/table/${TABLE_ID}/record?take=1000`, {
+      headers: {
+        'Authorization': `Bearer ${API_KEY}`,
+      },
+      cache: 'no-store'
+    });
+
+    if (!response.ok) {
+      return NextResponse.json({ error: 'Failed to fetch customers' }, { status: response.status });
+    }
+
+    const data = await response.json();
+    return NextResponse.json(data);
   } catch (error) {
-    return NextResponse.json({ error: "Failed to fetch customers" }, { status: 500 })
-  }
-}
-
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json()
-    const data = await teableClient.createRecord(CUSTOMERS_TABLE_ID, body.fields)
-    return NextResponse.json(data)
-  } catch (error: any) {
-    return NextResponse.json({ error: "Failed to create customer" }, { status: 500 })
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

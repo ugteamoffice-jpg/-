@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
 const API_URL = 'https://teable-production-bedd.up.railway.app';
-const TABLE_ID = 'tblUgEhLuyCwEK2yWG4'; // ה-ID של טבלת סידור עבודה
+const TABLE_ID = 'tblUgEhLuyCwEK2yWG4'; // טבלת סידור עבודה
 const API_KEY = process.env.TEABLE_API_KEY;
 
 // קריאת נתונים (GET)
@@ -28,18 +28,20 @@ export async function GET(request: Request) {
   }
 }
 
-// יצירת רשומה (POST) - התיקון נמצא כאן
+// יצירת רשומה (POST)
 export async function POST(request: Request) {
   try {
-    const body = await request.json(); // אנחנו מקבלים { fields: {...} } מהלקוח
+    const body = await request.json(); // מקבלים { fields: {...} }
     
     if (!API_KEY) {
       return NextResponse.json({ error: 'Missing Server API Key' }, { status: 500 });
     }
 
-    // --- התיקון: עטיפת הנתונים במבנה ש-Teable דורש ---
+    console.log("🔵 מנסה ליצור רשומה חדשה...");
+    
+    // הכנת המידע לשליחה
     const teablePayload = {
-      typecast: true, // מאפשר המרה חכמה של שדות
+      typecast: true, // מאפשר המרת סוגי נתונים אוטומטית
       records: [
         {
           fields: body.fields 
@@ -47,9 +49,10 @@ export async function POST(request: Request) {
       ]
     };
 
-    console.log("Sending payload to Teable:", JSON.stringify(teablePayload, null, 2));
-
-    const response = await fetch(`${API_URL}/api/table/${TABLE_ID}/record`, {
+    // --- התיקון הקריטי: הוספת ?fieldKeyType=id לכתובת ---
+    const endpoint = `${API_URL}/api/table/${TABLE_ID}/record?fieldKeyType=id`;
+    
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${API_KEY}`,
@@ -58,16 +61,26 @@ export async function POST(request: Request) {
       body: JSON.stringify(teablePayload),
     });
 
+    // --- טיפול בשגיאות מפורט (כמו שביקשת) ---
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Teable POST Error:", errorText);
-      return NextResponse.json({ error: errorText }, { status: response.status });
+      const errorData = await response.json(); // מנסה לקרוא את השגיאה כ-JSON
+      
+      console.error("❌ שגיאה ביצירת רשומה ב-Teable:");
+      console.error(JSON.stringify(errorData, null, 2)); // מדפיס את השגיאה בצורה יפה וקריאה
+      
+      // מחזיר את השגיאה המדויקת לקלינט
+      return NextResponse.json({ 
+        error: "Teable Error", 
+        details: errorData 
+      }, { status: response.status });
     }
 
     const data = await response.json();
+    console.log("✅ הרשומה נוצרה בהצלחה:", data);
     return NextResponse.json(data);
+
   } catch (error) {
-    console.error("Server POST Error:", error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    console.error("❌ שגיאה כללית בשרת:", error);
+    return NextResponse.json({ error: 'Internal Server Error', details: String(error) }, { status: 500 });
   }
 }

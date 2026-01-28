@@ -5,21 +5,19 @@ export const dynamic = 'force-dynamic';
 const API_URL = 'https://teable-production-bedd.up.railway.app';
 const TABLE_ID = 'tblUgEhLuyCwEK2yWG4';
 const API_KEY = process.env.TEABLE_API_KEY;
-const DATE_FIELD_ID = 'fldvNsQbfzMWTc7jakp'; // ה-ID של שדה התאריך שלך
+const DATE_FIELD_ID = 'fldvNsQbfzMWTc7jakp'; // ה-ID של שדה התאריך
 
-// --- GET חכם: מתרגם סינון תאריך לפורמט של Teable ---
+// --- GET (התיקון נמצא כאן) ---
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const take = searchParams.get('take') || '1000';
-    const dateParam = searchParams.get('date'); // הממשק שולח ?date=YYYY-MM-DD
+    const dateParam = searchParams.get('date'); 
 
-    // התחלת בניית כתובת ה-API
-    let endpoint = `${API_URL}/api/table/${TABLE_ID}/record?take=${take}`;
+    // הוספתי כאן את &fieldKeyType=id כדי שהסינון יעבוד עם IDs!
+    let endpoint = `${API_URL}/api/table/${TABLE_ID}/record?take=${take}&fieldKeyType=id`;
 
-    // אם נשלח תאריך לסינון, נוסיף אותו בפורמט ש-Teable מבין
     if (dateParam) {
-      // Teable דורש פילטר בפורמט JSON מקודד
       const filterObj = {
         operator: "and",
         filterSet: [
@@ -35,7 +33,7 @@ export async function GET(request: Request) {
       endpoint += `&filter=${encodedFilter}`;
     }
 
-    console.log("🔍 Fetching from Teable:", endpoint);
+    console.log("🔍 Fetching URL:", endpoint);
 
     const response = await fetch(endpoint, {
       headers: { 'Authorization': `Bearer ${API_KEY}` },
@@ -43,27 +41,28 @@ export async function GET(request: Request) {
     });
 
     if (!response.ok) {
-      console.error("GET Error:", await response.text());
-      return NextResponse.json({ error: 'Failed to fetch' }, { status: response.status });
+      const err = await response.text();
+      console.error("GET Error:", err);
+      return NextResponse.json({ error: 'Failed' }, { status: response.status });
     }
 
     const data = await response.json();
     return NextResponse.json(data);
   } catch (error) {
-    console.error("Server GET Error:", error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
 
-// --- POST (נשאר תקין מגרסה 4) ---
+// --- POST (נשאר תקין ועובד) ---
 export async function POST(request: Request) {
-  console.log("🔥🔥🔥 POST REQUEST - CREATING RIDE 🔥🔥🔥");
+  console.log("🔥🔥🔥 POST CREATION 🔥🔥🔥");
 
   try {
     const body = await request.json();
     
     if (!API_KEY) return NextResponse.json({ error: 'Missing API Key' }, { status: 500 });
 
+    // התיקון הגדול שעשינו קודם (עובד מצוין)
     const teablePayload = {
       fieldKeyType: "id", 
       typecast: true,
@@ -84,7 +83,7 @@ export async function POST(request: Request) {
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error("❌ Teable POST Error:", JSON.stringify(errorData, null, 2));
+      console.error("❌ Error:", JSON.stringify(errorData, null, 2));
       return NextResponse.json({ error: "Teable Error", details: errorData }, { status: response.status });
     }
 
@@ -92,7 +91,6 @@ export async function POST(request: Request) {
     return NextResponse.json(data);
 
   } catch (error) {
-    console.error("❌ Server POST Error:", error);
-    return NextResponse.json({ error: 'Internal Server Error', details: String(error) }, { status: 500 });
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

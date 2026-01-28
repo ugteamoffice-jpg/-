@@ -1,8 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { Plus, Calendar as CalendarIcon, Loader2, Save } from "lucide-react"
-import { format } from "date-fns"
+import { Plus, Calendar as CalendarIcon, Loader2, Save, Pencil } from "lucide-react"
+import { format, parseISO } from "date-fns"
 import { he } from "date-fns/locale"
 
 import { Button } from "@/components/ui/button"
@@ -33,13 +33,31 @@ import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 
-// סוג פריט לרשימות בחירה
+// מזהי השדות ב-Teable
+const FIELDS = {
+  DATE: 'fldvNsQbfzMWTc7jakp',
+  CUSTOMER: 'fldVy6L2DCboXUTkjBX',
+  DESCRIPTION: 'fldA6e7ul57abYgAZDh',
+  PICKUP_TIME: 'fldLbXMREYfC8XVIghj',
+  DROPOFF_TIME: 'fld56G8M1LyHRRROWiL',
+  VEHICLE_TYPE: 'fldx4hl8FwbxfkqXf0B',
+  DRIVER: 'flddNPbrzOCdgS36kx5',
+  VEHICLE_NUM: 'fldqStJV3KKIutTY9hW',
+  DRIVER_NOTES: 'fldhNoiFEkEgrkxff02',
+  PRICE_CLIENT_EXCL: 'fldxXnfHHQWwXY8dlEV',
+  PRICE_CLIENT_INCL: 'fldT7QLSKmSrjIHarDb',
+  PRICE_DRIVER_EXCL: 'fldSNuxbM8oJfrQ3a9x',
+  PRICE_DRIVER_INCL: 'fldyQIhjdUeQwtHMldD',
+  ORDER_NAME: 'fldkvTaql1bPbifVKLt',
+  MOBILE: 'fld6NJPsiW8CtRIfnaY',
+  ID_NUM: 'fldAJPcCFUcDPlSCK1a'
+}
+
 interface ListItem {
   id: string
   title: string
 }
 
-// --- רכיב עזר: שדה השלמה אוטומטית (חיפוש בלבד) ---
 function AutoComplete({ 
   options, 
   value, 
@@ -57,44 +75,38 @@ function AutoComplete({
 
   React.useEffect(() => {
     if (!value || value.trim() === "") {
-      setFilteredOptions([])
-      setShowList(false)
+      setFilteredOptions(options)
     } else {
       const filtered = options.filter(opt => 
         opt.title.toLowerCase().includes(value.toLowerCase())
       )
       setFilteredOptions(filtered)
-      setShowList(filtered.length > 0)
     }
   }, [value, options])
-
-  React.useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
-        setShowList(false)
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [])
 
   return (
     <div ref={wrapperRef} className="relative w-full">
       <Input 
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => {
+           onChange(e.target.value)
+           setShowList(true)
+        }}
+        onFocus={() => setShowList(true)}
+        onBlur={() => setTimeout(() => setShowList(false), 200)}
         className="text-right"
         placeholder={placeholder}
         autoComplete="off"
       />
       
-      {showList && (
+      {showList && filteredOptions.length > 0 && (
         <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 shadow-md max-h-[200px] overflow-y-auto rounded-sm">
           {filteredOptions.map((option) => (
             <div
               key={option.id}
               className="px-3 py-2 text-right text-sm cursor-pointer hover:bg-gray-100 transition-colors border-b last:border-0 border-gray-100 text-black"
-              onMouseDown={() => {
+              onMouseDown={(e) => {
+                e.preventDefault()
                 onChange(option.title)
                 setShowList(false)
               }}
@@ -108,76 +120,108 @@ function AutoComplete({
   )
 }
 
-// --- הרכיב הראשי ---
-export function NewRideDialog({ onRideCreated }: { onRideCreated: () => void }) {
+export function RideDialog({ 
+  onRideSaved, 
+  initialData = null,
+  triggerChild
+}: { 
+  onRideSaved: () => void, 
+  initialData?: any,
+  triggerChild?: React.ReactNode 
+}) {
   const [open, setOpen] = React.useState(false)
   const [loading, setLoading] = React.useState(false)
   const { toast } = useToast()
+  const isEditMode = !!initialData; 
 
-  // State
   const [date, setDate] = React.useState<Date>(new Date())
-  const [vatRate, setVatRate] = React.useState("18") 
+  const [vatRate, setVatRate] = React.useState("17") 
 
-  // --- דאטה דינמי מהטבלאות ---
   const [customersList, setCustomersList] = React.useState<ListItem[]>([])
   const [driversList, setDriversList] = React.useState<ListItem[]>([])
   const [vehiclesList, setVehiclesList] = React.useState<ListItem[]>([])
 
-  const getRecordName = (record: any) => {
-      if (!record.fields) return record.id;
-      const values = Object.values(record.fields);
-      return values.length > 0 ? String(values[0]) : record.id;
-  };
+  const [formData, setFormData] = React.useState({
+    customer: "", description: "", pickupTime: "", dropoffTime: "", vehicleType: "",
+    driver: "", vehicleNumber: "", notesDriver: "", orderingName: "", mobile: "", idNumber: "",
+  })
+
+  const [prices, setPrices] = React.useState({
+    clientExcl: "", clientIncl: "", driverExcl: "", driverIncl: "",
+  })
 
   React.useEffect(() => {
     if (open) {
-        fetch('/api/customers').then(res => res.json()).then(data => {
-            if (data.records) setCustomersList(data.records.map((r: any) => ({ id: r.id, title: getRecordName(r) })));
-        }).catch(console.error);
-
-        fetch('/api/drivers').then(res => res.json()).then(data => {
-            if (data.records) setDriversList(data.records.map((r: any) => ({ id: r.id, title: getRecordName(r) })));
-        }).catch(console.error);
-
-        fetch('/api/vehicles').then(res => res.json()).then(data => {
-            if (data.records) setVehiclesList(data.records.map((r: any) => ({ id: r.id, title: getRecordName(r) })));
-        }).catch(console.error);
+        const getList = async (url: string) => {
+            try {
+                const res = await fetch(url);
+                const data = await res.json();
+                return data.records ? data.records.map((r: any) => ({ 
+                    id: r.id, 
+                    title: r.fields && Object.values(r.fields)[0] ? String(Object.values(r.fields)[0]) : r.id 
+                })) : [];
+            } catch (e) { return [] }
+        }
+        
+        Promise.all([
+            getList('/api/customers'),
+            getList('/api/drivers'),
+            getList('/api/vehicles')
+        ]).then(([customers, drivers, vehicles]) => {
+            setCustomersList(customers);
+            setDriversList(drivers);
+            setVehiclesList(vehicles);
+        });
     }
-  }, [open])
+  }, [open]);
 
-  // שדות הטופס
-  const [formData, setFormData] = React.useState({
-    customer: "",
-    description: "",
-    pickupTime: "", 
-    dropoffTime: "", 
-    vehicleType: "",
-    driver: "",
-    vehicleNumber: "",
-    notesDriver: "",
-    orderingName: "",
-    mobile: "",
-    idNumber: "",
-  })
+  React.useEffect(() => {
+    if (open && initialData) {
+        const f = initialData.fields;
+        if (f[FIELDS.DATE]) setDate(parseISO(f[FIELDS.DATE]));
 
-  const [file, setFile] = React.useState<File | null>(null)
+        const getVal = (val: any) => {
+            if (Array.isArray(val) && val[0]?.title) return val[0].title;
+            return val || "";
+        }
 
-  const [prices, setPrices] = React.useState({
-    clientExcl: "",
-    clientIncl: "",
-    driverExcl: "",
-    driverIncl: "",
-  })
+        setFormData({
+            customer: getVal(f[FIELDS.CUSTOMER]),
+            description: f[FIELDS.DESCRIPTION] || "",
+            pickupTime: f[FIELDS.PICKUP_TIME] || "",
+            dropoffTime: f[FIELDS.DROPOFF_TIME] || "",
+            vehicleType: getVal(f[FIELDS.VEHICLE_TYPE]),
+            driver: getVal(f[FIELDS.DRIVER]),
+            vehicleNumber: f[FIELDS.VEHICLE_NUM] || "",
+            notesDriver: f[FIELDS.DRIVER_NOTES] || "",
+            orderingName: f[FIELDS.ORDER_NAME] || "",
+            mobile: f[FIELDS.MOBILE] || "",
+            idNumber: f[FIELDS.ID_NUM] || "",
+        });
+
+        setPrices({
+            clientExcl: f[FIELDS.PRICE_CLIENT_EXCL] || "",
+            clientIncl: f[FIELDS.PRICE_CLIENT_INCL] || "",
+            driverExcl: f[FIELDS.PRICE_DRIVER_EXCL] || "",
+            driverIncl: f[FIELDS.PRICE_DRIVER_INCL] || "",
+        });
+    } else if (open && !initialData) {
+        setFormData({
+            customer: "", description: "", pickupTime: "", dropoffTime: "", vehicleType: "",
+            driver: "", vehicleNumber: "", notesDriver: "", orderingName: "", mobile: "", idNumber: ""
+        });
+        setPrices({ clientExcl: "", clientIncl: "", driverExcl: "", driverIncl: "" });
+        setDate(new Date());
+    }
+  }, [open, initialData]);
 
   const calculateVat = (value: string, type: 'excl' | 'incl', field: 'client' | 'driver') => {
     const numVal = parseFloat(value)
     const rate = 1 + (parseFloat(vatRate) / 100)
-
     if (isNaN(numVal)) {
       setPrices(prev => ({ ...prev, [`${field}Excl`]: "", [`${field}Incl`]: "" }))
       return
     }
-
     if (type === 'excl') {
       const incl = (numVal * rate).toFixed(2)
       setPrices(prev => ({ ...prev, [`${field}Excl`]: value, [`${field}Incl`]: incl }))
@@ -187,31 +231,8 @@ export function NewRideDialog({ onRideCreated }: { onRideCreated: () => void }) 
     }
   }
 
-  const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'excl' | 'incl', field: 'client' | 'driver') => {
-    calculateVat(e.target.value, type, field)
-  }
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
-  }
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0])
-    }
-  }
-
-  // --- שליחת הטופס ---
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
-    // בדיקת חובה מעודכנת: כולל לקוח
-    if (!formData.description || !formData.pickupTime || !formData.customer) {
-        toast({ title: "נא למלא שדות חובה (תאריך, שם לקוח, תיאור, שעת התייצבות)", variant: "destructive" })
-        return
-    }
-
     setLoading(true)
 
     const getLinkID = (value: string, list: ListItem[]) => {
@@ -220,251 +241,191 @@ export function NewRideDialog({ onRideCreated }: { onRideCreated: () => void }) 
     }
 
     try {
-      // בניית האובייקט - שדות חובה
       const fieldsToSend: any = {
-          fldvNsQbfzMWTc7jakp: format(date, "yyyy-MM-dd"), 
-          fldA6e7ul57abYgAZDh: formData.description,
-          fldLbXMREYfC8XVIghj: formData.pickupTime,
+          [FIELDS.DATE]: format(date, "yyyy-MM-dd"), 
+          [FIELDS.DESCRIPTION]: formData.description,
+          [FIELDS.PICKUP_TIME]: formData.pickupTime,
+          [FIELDS.DROPOFF_TIME]: formData.dropoffTime,
+          [FIELDS.VEHICLE_NUM]: formData.vehicleNumber,
+          [FIELDS.DRIVER_NOTES]: formData.notesDriver,
+          [FIELDS.ORDER_NAME]: formData.orderingName,
+          [FIELDS.MOBILE]: formData.mobile,
+          [FIELDS.ID_NUM]: formData.idNumber,
+          [FIELDS.PRICE_CLIENT_EXCL]: Number(prices.clientExcl) || 0,
+          [FIELDS.PRICE_CLIENT_INCL]: Number(prices.clientIncl) || 0,
+          [FIELDS.PRICE_DRIVER_EXCL]: Number(prices.driverExcl) || 0,
+          [FIELDS.PRICE_DRIVER_INCL]: Number(prices.driverIncl) || 0,
       };
 
-      // שדות אופציונליים
-      if (formData.dropoffTime) fieldsToSend.fld56G8M1LyHRRROWiL = formData.dropoffTime;
-      if (formData.vehicleNumber) fieldsToSend.fldqStJV3KKIutTY9hW = formData.vehicleNumber;
-      if (formData.notesDriver) fieldsToSend.fldhNoiFEkEgrkxff02 = formData.notesDriver;
-      if (formData.orderingName) fieldsToSend.fldkvTaql1bPbifVKLt = formData.orderingName;
-      if (formData.mobile) fieldsToSend.fld6NJPsiW8CtRIfnaY = formData.mobile;
-      if (formData.idNumber) fieldsToSend.fldAJPcCFUcDPlSCK1a = formData.idNumber;
-
-      // טיפול בשדות מקושרים
       const vehicleLink = getLinkID(formData.vehicleType, vehiclesList);
-      if (vehicleLink) fieldsToSend.fldx4hl8FwbxfkqXf0B = vehicleLink;
+      if (vehicleLink) fieldsToSend[FIELDS.VEHICLE_TYPE] = vehicleLink;
 
       const driverLink = getLinkID(formData.driver, driversList);
-      if (driverLink) fieldsToSend.flddNPbrzOCdgS36kx5 = driverLink;
+      if (driverLink) fieldsToSend[FIELDS.DRIVER] = driverLink;
 
-      // לקוח הוא חובה בטופס, אבל כאן נבדוק אם הוא קיים ברשימה
       const customerLink = getLinkID(formData.customer, customersList);
-      if (customerLink) {
-         fieldsToSend.fldVy6L2DCboXUTkjBX = customerLink;
-      } else {
-         // אם הלקוח הוקלד ידנית ולא קיים ברשימה, לא נשלח אותו כרגע (כי זה שדה לינק)
-         // בעתיד אפשר להוסיף יצירה אוטומטית של לקוח חדש
-      }
+      if (customerLink) fieldsToSend[FIELDS.CUSTOMER] = customerLink;
 
-      // מספרים
-      fieldsToSend.fldxXnfHHQWwXY8dlEV = Number(prices.clientExcl) || 0;
-      fieldsToSend.fldT7QLSKmSrjIHarDb = Number(prices.clientIncl) || 0;
-      fieldsToSend.fldSNuxbM8oJfrQ3a9x = Number(prices.driverExcl) || 0;
-      fieldsToSend.fldyQIhjdUeQwtHMldD = Number(prices.driverIncl) || 0;
-
+      const method = isEditMode ? "PATCH" : "POST";
+      const payload = isEditMode ? { recordId: initialData.id, fields: fieldsToSend } : { fields: fieldsToSend };
 
       const response = await fetch("/api/work-schedule", {
-        method: "POST",
+        method: method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fields: fieldsToSend }),
+        body: JSON.stringify(payload),
       });
 
-      if (!response.ok) {
-          const errData = await response.json();
-          throw new Error(errData.error || "Failed to create record");
-      }
+      if (!response.ok) throw new Error("Failed to save");
 
-      toast({ title: "הנסיעה נוצרה בהצלחה!" })
-      setOpen(false)
-      onRideCreated()
-      
-      // איפוס
-      setFormData({
-        customer: "", description: "", pickupTime: "", dropoffTime: "", vehicleType: "",
-        driver: "", vehicleNumber: "", notesDriver: "", orderingName: "", mobile: "", idNumber: ""
-      })
-      setPrices({ clientExcl: "", clientIncl: "", driverExcl: "", driverIncl: "" })
-      setFile(null)
-      setDate(new Date())
+      toast({ title: isEditMode ? "עודכן בהצלחה!" : "נוצר בהצלחה!" });
+      setOpen(false);
+      onRideSaved();
 
-    } catch (error: any) {
-      console.error(error)
-      toast({ title: "שגיאה ביצירת נסיעה", description: error.message, variant: "destructive" })
+    } catch (error) {
+      toast({ title: "שגיאה בשמירה", variant: "destructive" });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
-          <Plus className="h-4 w-4" />
-          צור נסיעה
-        </Button>
+        {triggerChild ? triggerChild : (
+            <Button className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
+            <Plus className="h-4 w-4" />
+            צור נסיעה
+            </Button>
+        )}
       </DialogTrigger>
       
       <DialogContent className="sm:max-w-[700px] h-[80vh] flex flex-col" dir="rtl">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-right">יצירת נסיעה חדשה</DialogTitle>
+          <DialogTitle className="text-2xl font-bold text-right">
+            {isEditMode ? "עריכת נסיעה" : "יצירת נסיעה חדשה"}
+          </DialogTitle>
           <DialogDescription className="text-right">
-            מלא את הפרטים בשדות ולחץ על "צור נסיעה".
+            {isEditMode ? "עדכן את הפרטים ולחץ על שמירה." : "מלא את הפרטים בשדות ולחץ על צור נסיעה."}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="flex-1 overflow-hidden flex flex-col">
           <Tabs defaultValue="details" className="flex-1 flex flex-col overflow-hidden">
-            <TabsList className="grid w-full grid-cols-3">
+             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="details">פרטי נסיעה</TabsTrigger>
               <TabsTrigger value="prices">מחירים</TabsTrigger>
               <TabsTrigger value="extra">פרטים נוספים</TabsTrigger>
             </TabsList>
 
             <div className="flex-1 overflow-y-auto p-4 border rounded-md mt-2">
-              
-              {/* === טאב 1: פרטי נסיעה === */}
-              <TabsContent value="details" className="space-y-4 mt-0">
-                
-                {/* 1. תאריך */}
-                <div className="space-y-2">
-                  <Label className="text-right block">תאריך <span className="text-red-500">*</span></Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant={"outline"} className={cn("w-full justify-start text-right font-normal", !date && "text-muted-foreground")}>
-                        <CalendarIcon className="ml-2 h-4 w-4" />
-                        {date ? format(date, "PPP", { locale: he }) : <span>בחר תאריך</span>}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="end">
-                      <Calendar mode="single" selected={date} onSelect={(d) => d && setDate(d)} initialFocus locale={he} dir="rtl" />
-                    </PopoverContent>
-                  </Popover>
-                </div>
+                <TabsContent value="details" className="space-y-4 mt-0">
+                    <div className="space-y-2">
+                        <Label className="text-right block">תאריך</Label>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                            <Button variant={"outline"} className={cn("w-full justify-start text-right font-normal", !date && "text-muted-foreground")}>
+                                <CalendarIcon className="ml-2 h-4 w-4" />
+                                {date ? format(date, "PPP", { locale: he }) : <span>בחר תאריך</span>}
+                            </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="end">
+                            <Calendar mode="single" selected={date} onSelect={(d) => d && setDate(d)} initialFocus locale={he} dir="rtl" />
+                            </PopoverContent>
+                        </Popover>
+                    </div>
 
-                {/* 2. שם לקוח - זז לכאן והפך לחובה */}
-                <div className="space-y-2">
-                  <Label className="text-right block">שם לקוח <span className="text-red-500">*</span></Label>
-                  <AutoComplete 
-                    options={customersList} 
-                    value={formData.customer} 
-                    onChange={(val) => setFormData(prev => ({ ...prev, customer: val }))} 
-                    placeholder="בחר או הקלד לקוח..." 
-                  />
-                </div>
+                    <div className="space-y-2">
+                        <Label>שם לקוח</Label>
+                        <AutoComplete options={customersList} value={formData.customer} onChange={(v) => setFormData(p => ({...p, customer: v}))} placeholder="בחר לקוח..." />
+                    </div>
 
-                {/* 3. תיאור */}
-                <div className="space-y-2">
-                  <Label htmlFor="description" className="text-right block">תיאור <span className="text-red-500">*</span></Label>
-                  <Textarea id="description" name="description" value={formData.description} onChange={handleChange} className="text-right resize-none" rows={2} />
-                </div>
-
-                {/* 4. התייצבות */}
-                <div className="space-y-2">
-                  <Label htmlFor="pickupTime" className="text-right block">שעת התייצבות <span className="text-red-500">*</span></Label>
-                  <Input id="pickupTime" name="pickupTime" type="time" value={formData.pickupTime} onChange={handleChange} className="text-right" />
-                </div>
-
-                {/* 5. חזור */}
-                <div className="space-y-2">
-                  <Label htmlFor="dropoffTime" className="text-right block">שעת חזור</Label>
-                  <Input id="dropoffTime" name="dropoffTime" type="time" value={formData.dropoffTime} onChange={handleChange} className="text-right" />
-                </div>
-
-                {/* 6. סוג רכב */}
-                <div className="space-y-2">
-                  <Label className="text-right block">סוג רכב</Label>
-                  <AutoComplete 
-                    options={vehiclesList} 
-                    value={formData.vehicleType} 
-                    onChange={(val) => setFormData(prev => ({ ...prev, vehicleType: val }))} 
-                    placeholder="בחר או הקלד סוג רכב..." 
-                  />
-                </div>
-
-                {/* 7. שם נהג */}
-                <div className="space-y-2">
-                  <Label className="text-right block">שם נהג</Label>
-                  <AutoComplete 
-                    options={driversList} 
-                    value={formData.driver} 
-                    onChange={(val) => setFormData(prev => ({ ...prev, driver: val }))} 
-                    placeholder="בחר או הקלד נהג..." 
-                  />
-                </div>
-
-                {/* 8. מספר רכב */}
-                <div className="space-y-2">
-                  <Label htmlFor="vehicleNumber" className="text-right block">מספר רכב</Label>
-                  <Input id="vehicleNumber" name="vehicleNumber" value={formData.vehicleNumber} onChange={handleChange} className="text-right" />
-                </div>
-
-                {/* 9. הערות לנהג */}
-                <div className="space-y-2">
-                  <Label htmlFor="notesDriver" className="text-right block">הערות לנהג</Label>
-                  <Textarea id="notesDriver" name="notesDriver" value={formData.notesDriver} onChange={handleChange} className="text-right resize-none" rows={2} />
-                </div>
-
-                {/* 10. טופס הזמנה */}
-                <div className="space-y-2">
-                  <Label htmlFor="orderForm" className="text-right block">טופס הזמנה</Label>
-                  <Input id="orderForm" type="file" className="text-right cursor-pointer" />
-                </div>
-              </TabsContent>
-
-              {/* === טאב 2: מחירים === */}
-              <TabsContent value="prices" className="space-y-6 mt-0">
-                <div className="flex items-center gap-2 p-2 bg-secondary/30 rounded-md w-fit">
-                    <Label htmlFor="vatRate">אחוז מע"מ:</Label>
-                    <Input id="vatRate" value={vatRate} onChange={(e) => setVatRate(e.target.value)} className="w-16 h-8 text-center" />
-                    <span className="text-sm">%</span>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-4 p-4 border rounded-lg bg-blue-50/50">
-                        <h3 className="font-bold text-blue-700 text-center border-b pb-2">מחיר לקוח</h3>
+                    <div className="space-y-2">
+                        <Label>תיאור</Label>
+                        <Textarea value={formData.description} onChange={(e) => setFormData(p => ({...p, description: e.target.value}))} className="text-right" />
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label>לפני מע"מ</Label>
-                            <Input type="number" value={prices.clientExcl} onChange={(e) => handlePriceChange(e, 'excl', 'client')} className="text-right bg-white" />
+                            <Label>התייצבות</Label>
+                            <Input type="time" value={formData.pickupTime} onChange={(e) => setFormData(p => ({...p, pickupTime: e.target.value}))} className="text-right" />
                         </div>
                         <div className="space-y-2">
-                            <Label>כולל מע"מ</Label>
-                            <Input type="number" value={prices.clientIncl} onChange={(e) => handlePriceChange(e, 'incl', 'client')} className="text-right font-bold bg-white" />
+                            <Label>חזור</Label>
+                            <Input type="time" value={formData.dropoffTime} onChange={(e) => setFormData(p => ({...p, dropoffTime: e.target.value}))} className="text-right" />
                         </div>
                     </div>
 
-                    <div className="space-y-4 p-4 border rounded-lg bg-orange-50/50">
-                        <h3 className="font-bold text-orange-700 text-center border-b pb-2">מחיר נהג</h3>
-                        <div className="space-y-2">
-                            <Label>לפני מע"מ</Label>
-                            <Input type="number" value={prices.driverExcl} onChange={(e) => handlePriceChange(e, 'excl', 'driver')} className="text-right bg-white" />
+                     <div className="space-y-2">
+                        <Label>שם נהג</Label>
+                        <AutoComplete options={driversList} value={formData.driver} onChange={(v) => setFormData(p => ({...p, driver: v}))} placeholder="בחר נהג..." />
+                    </div>
+                     <div className="space-y-2">
+                        <Label>סוג רכב</Label>
+                        <AutoComplete options={vehiclesList} value={formData.vehicleType} onChange={(v) => setFormData(p => ({...p, vehicleType: v}))} placeholder="בחר רכב..." />
+                    </div>
+                     <div className="space-y-2">
+                        <Label>מספר רכב</Label>
+                        <Input value={formData.vehicleNumber} onChange={(e) => setFormData(p => ({...p, vehicleNumber: e.target.value}))} className="text-right" />
+                    </div>
+                     <div className="space-y-2">
+                        <Label>הערות לנהג</Label>
+                        <Textarea value={formData.notesDriver} onChange={(e) => setFormData(p => ({...p, notesDriver: e.target.value}))} className="text-right" rows={2} />
+                    </div>
+                </TabsContent>
+
+                <TabsContent value="prices" className="space-y-6 mt-0">
+                    <div className="flex items-center gap-2 p-2 bg-secondary/30 rounded-md w-fit">
+                        <Label>מע"מ %:</Label>
+                        <Input value={vatRate} onChange={(e) => setVatRate(e.target.value)} className="w-16 h-8 text-center" />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-4 p-4 border rounded-lg bg-blue-50/50">
+                            <h3 className="font-bold text-blue-700 text-center border-b pb-2">מחיר לקוח</h3>
+                            <div className="space-y-2">
+                                <Label>לפני מע"מ</Label>
+                                <Input type="number" value={prices.clientExcl} onChange={(e) => calculateVat(e.target.value, 'excl', 'client')} className="text-right bg-white" />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>כולל מע"מ</Label>
+                                <Input type="number" value={prices.clientIncl} onChange={(e) => calculateVat(e.target.value, 'incl', 'client')} className="text-right font-bold bg-white" />
+                            </div>
                         </div>
-                        <div className="space-y-2">
-                            <Label>כולל מע"מ</Label>
-                            <Input type="number" value={prices.driverIncl} onChange={(e) => handlePriceChange(e, 'incl', 'driver')} className="text-right font-bold bg-white" />
+                        <div className="space-y-4 p-4 border rounded-lg bg-orange-50/50">
+                            <h3 className="font-bold text-orange-700 text-center border-b pb-2">מחיר נהג</h3>
+                            <div className="space-y-2">
+                                <Label>לפני מע"מ</Label>
+                                <Input type="number" value={prices.driverExcl} onChange={(e) => calculateVat(e.target.value, 'excl', 'driver')} className="text-right bg-white" />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>כולל מע"מ</Label>
+                                <Input type="number" value={prices.driverIncl} onChange={(e) => calculateVat(e.target.value, 'incl', 'driver')} className="text-right font-bold bg-white" />
+                            </div>
                         </div>
                     </div>
-                </div>
-              </TabsContent>
+                </TabsContent>
 
-              {/* === טאב 3: פרטים נוספים === */}
-              <TabsContent value="extra" className="space-y-4 mt-0">
-                 <div className="space-y-2">
-                    <Label htmlFor="orderingName" className="text-right block">שם מזמין</Label>
-                    <Input id="orderingName" name="orderingName" value={formData.orderingName} onChange={handleChange} className="text-right" />
-                 </div>
-                 <div className="space-y-2">
-                    <Label htmlFor="mobile" className="text-right block">טלפון נייד</Label>
-                    <Input id="mobile" name="mobile" value={formData.mobile} onChange={handleChange} className="text-right" />
-                 </div>
-                 <div className="space-y-2">
-                    <Label htmlFor="idNumber" className="text-right block">תעודת זהות</Label>
-                    <Input id="idNumber" name="idNumber" value={formData.idNumber} onChange={handleChange} className="text-right" />
-                 </div>
-              </TabsContent>
-
+                 <TabsContent value="extra" className="space-y-4 mt-0">
+                     <div className="space-y-2">
+                        <Label>שם מזמין</Label>
+                        <Input value={formData.orderingName} onChange={(e) => setFormData(p => ({...p, orderingName: e.target.value}))} className="text-right" />
+                     </div>
+                     <div className="space-y-2">
+                        <Label>נייד</Label>
+                        <Input value={formData.mobile} onChange={(e) => setFormData(p => ({...p, mobile: e.target.value}))} className="text-right" />
+                     </div>
+                     <div className="space-y-2">
+                        <Label>ת.ז.</Label>
+                        <Input value={formData.idNumber} onChange={(e) => setFormData(p => ({...p, idNumber: e.target.value}))} className="text-right" />
+                     </div>
+                </TabsContent>
             </div>
           </Tabs>
 
           <DialogFooter className="mt-4 gap-2 sm:gap-0">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>ביטול</Button>
             <Button type="submit" disabled={loading} className="bg-primary min-w-[120px]">
-              {loading ? <Loader2 className="ml-2 h-4 w-4 animate-spin" /> : <Save className="ml-2 h-4 w-4" />}
-              צור נסיעה
+              {loading ? <Loader2 className="ml-2 h-4 w-4 animate-spin" /> : (isEditMode ? <Pencil className="ml-2 h-4 w-4" /> : <Save className="ml-2 h-4 w-4" />)}
+              {isEditMode ? "שמור שינויים" : "צור נסיעה"}
             </Button>
           </DialogFooter>
 

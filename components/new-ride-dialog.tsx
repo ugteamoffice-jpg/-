@@ -11,16 +11,14 @@ import { Textarea } from "@/components/ui/textarea"
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
+  DialogTrigger
 } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
 
-// מזהי השדות שלך
 const FIELDS = {
   DATE: 'fldvNsQbfzMWTc7jakp',
   CUSTOMER: 'fldVy6L2DCboXUTkjBX',
@@ -42,7 +40,6 @@ const FIELDS = {
 
 interface ListItem { id: string; title: string }
 
-// רכיב השלמה אוטומטית פשוט
 function AutoComplete({ options, value, onChange, placeholder }: any) {
   const [show, setShow] = React.useState(false)
   const filtered = options.filter((o: any) => o.title?.toLowerCase().includes(value?.toLowerCase() || ""))
@@ -60,10 +57,17 @@ function AutoComplete({ options, value, onChange, placeholder }: any) {
   )
 }
 
-export function RideDialog({ onRideSaved, initialData, triggerChild }: { onRideSaved: () => void, initialData?: any, triggerChild?: React.ReactNode }) {
-  const [open, setOpen] = React.useState(false)
+// עדכון: הוספתי props לשליטה מבחוץ (controlledOpen, setControlledOpen)
+export function RideDialog({ onRideSaved, initialData, triggerChild, open: controlledOpen, onOpenChange: setControlledOpen }: any) {
+  const [internalOpen, setInternalOpen] = React.useState(false)
   const [loading, setLoading] = React.useState(false)
   const { toast } = useToast()
+  
+  // אנחנו משתמשים ב-state החיצוני אם הוא קיים, אחרת בפנימי
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = isControlled ? setControlledOpen : setInternalOpen;
+
   const isEdit = !!initialData
 
   const [dateStr, setDateStr] = React.useState(format(new Date(), "yyyy-MM-dd"))
@@ -75,7 +79,6 @@ export function RideDialog({ onRideSaved, initialData, triggerChild }: { onRideS
   })
   const [prices, setPrices] = React.useState({ ce: "", ci: "", de: "", di: "" })
 
-  // טעינת רשימות
   React.useEffect(() => {
     if (open && lists.customers.length === 0) {
       const load = async (url: string) => {
@@ -86,7 +89,6 @@ export function RideDialog({ onRideSaved, initialData, triggerChild }: { onRideS
     }
   }, [open])
 
-  // מילוי טופס בעריכה
   React.useEffect(() => {
     if (open && initialData) {
       const f = initialData.fields
@@ -104,6 +106,14 @@ export function RideDialog({ onRideSaved, initialData, triggerChild }: { onRideS
         ce: f[FIELDS.PRICE_CLIENT_EXCL] || "", ci: f[FIELDS.PRICE_CLIENT_INCL] || "",
         de: f[FIELDS.PRICE_DRIVER_EXCL] || "", di: f[FIELDS.PRICE_DRIVER_INCL] || ""
       })
+    } else if (open && !initialData) {
+        // איפוס ביצירה חדשה
+        setForm({
+            customer: "", description: "", pickup: "", dropoff: "", vehicleType: "",
+            driver: "", vehicleNum: "", notes: "", orderName: "", mobile: "", idNum: ""
+        })
+        setPrices({ ce: "", ci: "", de: "", di: "" })
+        setDateStr(format(new Date(), "yyyy-MM-dd"))
     }
   }, [open, initialData])
 
@@ -136,7 +146,7 @@ export function RideDialog({ onRideSaved, initialData, triggerChild }: { onRideS
         method: isEdit ? "PATCH" : "POST",
         body: JSON.stringify(isEdit ? { recordId: initialData.id, fields: payload } : { fields: payload })
       })
-      toast({ title: "נשמר בהצלחה!" })
+      toast({ title: isEdit ? "עודכן בהצלחה!" : "נשמר בהצלחה!" })
       setOpen(false)
       onRideSaved()
     } catch { toast({ title: "שגיאה", variant: "destructive" }) } finally { setLoading(false) }
@@ -144,9 +154,8 @@ export function RideDialog({ onRideSaved, initialData, triggerChild }: { onRideS
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {triggerChild || <Button> <Plus className="ml-2 h-4 w-4"/> צור נסיעה </Button>}
-      </DialogTrigger>
+      {triggerChild && <DialogTrigger asChild>{triggerChild}</DialogTrigger>}
+      
       <DialogContent className="max-w-[700px] h-[80vh] flex flex-col" dir="rtl">
         <DialogHeader><DialogTitle>{isEdit ? "עריכת נסיעה" : "נסיעה חדשה"}</DialogTitle></DialogHeader>
         <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">

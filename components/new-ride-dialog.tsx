@@ -29,7 +29,7 @@ const FIELDS = {
   VEHICLE_TYPE: 'fldx4hl8FwbxfkqXf0B',
   DRIVER: 'flddNPbrzOCdgS36kx5',
   VEHICLE_NUM: 'fldqStJV3KKIutTY9hW',
-  MANAGER_NOTES: 'fldelKu7PLIBmCFfFPJ', // ה-ID החדש של הערות מנהל
+  MANAGER_NOTES: 'fldelKu7PLIBmCFfFPJ',
   DRIVER_NOTES: 'fldhNoiFEkEgrkxff02',
   PRICE_CLIENT_EXCL: 'fldxXnfHHQWwXY8dlEV',
   PRICE_CLIENT_INCL: 'fldT7QLSKmSrjIHarDb',
@@ -42,7 +42,7 @@ const FIELDS = {
 
 interface ListItem { id: string; title: string }
 
-// --- AutoComplete (מוגן מקריסות) ---
+// --- AutoComplete (מוגן) ---
 function AutoComplete({ options, value, onChange, placeholder }: any) {
   const [show, setShow] = React.useState(false)
   const safeValue = String(value || "").toLowerCase();
@@ -87,7 +87,7 @@ export function RideDialog({ onRideSaved, initialData, triggerChild, open: contr
   // State
   const [dateStr, setDateStr] = React.useState(format(new Date(), "yyyy-MM-dd"))
   
-  // שני משתני מע"מ נפרדים - ברירת מחדל 18%
+  // מע"מ
   const [vatClient, setVatClient] = React.useState("18")
   const [vatDriver, setVatDriver] = React.useState("18")
   
@@ -118,27 +118,48 @@ export function RideDialog({ onRideSaved, initialData, triggerChild, open: contr
     }
   }, [open])
 
-  // מילוי טופס בעריכה
+  // --- מילוי טופס בעריכה (התיקון נמצא כאן) ---
   React.useEffect(() => {
     if (open && initialData) {
       const f = initialData.fields
-      setDateStr(f[FIELDS.DATE] || "")
-      const getVal = (v: any) => Array.isArray(v) ? (v[0]?.title || "") : (v || "")
+      
+      // תיקון תאריך: אם קיים, נציב אותו
+      if (f[FIELDS.DATE]) {
+          setDateStr(f[FIELDS.DATE]);
+      } else {
+          setDateStr(format(new Date(), "yyyy-MM-dd"));
+      }
+
+      // פונקציית עזר משופרת לחילוץ הטקסט מתוך אובייקטים
+      const getVal = (v: any) => {
+          if (!v) return "";
+          if (Array.isArray(v)) return v[0]?.title || ""; // אם זה מערך של לינקים
+          if (typeof v === 'object') return v.title || ""; // אם זה אובייקט לינק בודד
+          return String(v); // אם זה סתם טקסט
+      }
       
       setForm({
-        customer: getVal(f[FIELDS.CUSTOMER]), description: f[FIELDS.DESCRIPTION] || "",
-        pickup: f[FIELDS.PICKUP_TIME] || "", dropoff: f[FIELDS.DROPOFF_TIME] || "",
-        vehicleType: getVal(f[FIELDS.VEHICLE_TYPE]), driver: getVal(f[FIELDS.DRIVER]),
+        customer: getVal(f[FIELDS.CUSTOMER]),
+        description: f[FIELDS.DESCRIPTION] || "",
+        pickup: f[FIELDS.PICKUP_TIME] || "",
+        dropoff: f[FIELDS.DROPOFF_TIME] || "",
+        vehicleType: getVal(f[FIELDS.VEHICLE_TYPE]),
+        driver: getVal(f[FIELDS.DRIVER]),
         vehicleNum: f[FIELDS.VEHICLE_NUM] || "",
-        managerNotes: f[FIELDS.MANAGER_NOTES] || "", // טעינת הערות מנהל
+        managerNotes: f[FIELDS.MANAGER_NOTES] || "",
         notes: f[FIELDS.DRIVER_NOTES] || "",
-        orderName: f[FIELDS.ORDER_NAME] || "", mobile: f[FIELDS.MOBILE] || "", idNum: f[FIELDS.ID_NUM] || ""
+        orderName: f[FIELDS.ORDER_NAME] || "",
+        mobile: f[FIELDS.MOBILE] || "",
+        idNum: f[FIELDS.ID_NUM] || ""
       })
+      
       setPrices({
         ce: f[FIELDS.PRICE_CLIENT_EXCL] || "", ci: f[FIELDS.PRICE_CLIENT_INCL] || "",
         de: f[FIELDS.PRICE_DRIVER_EXCL] || "", di: f[FIELDS.PRICE_DRIVER_INCL] || ""
       })
+
     } else if (open && !initialData) {
+        // איפוס ביצירה חדשה
         setForm({
             customer: "", description: "", pickup: "", dropoff: "", vehicleType: "",
             driver: "", vehicleNum: "", managerNotes: "", notes: "", orderName: "", mobile: "", idNum: ""
@@ -194,7 +215,7 @@ export function RideDialog({ onRideSaved, initialData, triggerChild, open: contr
       [FIELDS.PICKUP_TIME]: form.pickup,
       [FIELDS.DROPOFF_TIME]: form.dropoff,
       [FIELDS.VEHICLE_NUM]: form.vehicleNum,
-      [FIELDS.MANAGER_NOTES]: form.managerNotes, // שליחת הערות מנהל
+      [FIELDS.MANAGER_NOTES]: form.managerNotes,
       [FIELDS.DRIVER_NOTES]: form.notes,
       [FIELDS.ORDER_NAME]: form.orderName,
       [FIELDS.MOBILE]: form.mobile,
@@ -256,7 +277,7 @@ export function RideDialog({ onRideSaved, initialData, triggerChild, open: contr
                 <div className="space-y-1"><Label>סוג רכב <span className="text-red-500">*</span></Label><AutoComplete options={lists.vehicles} value={form.vehicleType} onChange={(v: string) => setForm(p => ({...p, vehicleType: v}))} placeholder="בחר רכב"/></div>
                 <div className="space-y-1"><Label>מס' רכב</Label><Input value={form.vehicleNum} onChange={e => setForm(p => ({...p, vehicleNum: e.target.value}))} className="text-right"/></div>
                 
-                {/* הערות מנהל - מעל הערות נהג */}
+                {/* הערות מנהל */}
                 <div className="space-y-1">
                     <Label>הערות מנהל</Label>
                     <Textarea value={form.managerNotes} onChange={e => setForm(p => ({...p, managerNotes: e.target.value}))} className="text-right border-blue-200 bg-blue-50/30" />
@@ -267,7 +288,7 @@ export function RideDialog({ onRideSaved, initialData, triggerChild, open: contr
                     <Textarea value={form.notes} onChange={e => setForm(p => ({...p, notes: e.target.value}))} className="text-right" />
                 </div>
 
-                {/* טופס הזמנה - הועבר לכאן */}
+                {/* טופס הזמנה */}
                 <div className="space-y-2 pt-4 border-t mt-4">
                     <Label className="flex items-center gap-2 font-bold"><Upload className="w-4 h-4"/> טופס הזמנה</Label>
                     <Input type="file" className="cursor-pointer bg-slate-50"/>

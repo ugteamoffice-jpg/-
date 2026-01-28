@@ -30,7 +30,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 
-// --- השינוי 1: שימוש בקומפוננטה החדשה ---
+// --- תיקון: ייבוא השם הנכון (RideDialog) ---
 import { RideDialog } from "@/components/new-ride-dialog"
 
 import { Calendar } from "@/components/ui/calendar"
@@ -598,7 +598,7 @@ export function DataGrid({ schema }: { schema: any }) {
             </PopoverContent>
           </Popover>
 
-          {/* השינוי 2: כפתור יצירה שמחובר ל-fetchData */}
+          {/* תיקון: שימוש ב-RideDialog עבור יצירה חדשה */}
           <RideDialog onRideSaved={fetchData} />
 
           <div className="flex items-center w-full max-w-sm">
@@ -699,7 +699,6 @@ export function DataGrid({ schema }: { schema: any }) {
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
                   className="cursor-pointer hover:bg-muted/50"
-                  // בעת לחיצה על שורה, נכנסים למצב עריכה
                   onClick={() => handleRowClick(row.original)}
                 >
                   {row.getVisibleCells().map((cell) => (
@@ -720,7 +719,7 @@ export function DataGrid({ schema }: { schema: any }) {
         </Table>
       </div>
 
-      {/* השינוי 3: הדיאלוג החדש לעריכה, שנפתח כשלוחצים על שורה */}
+      {/* הדיאלוג לעריכה (נפתח בלחיצה על שורה) */}
       <RideDialog 
         open={!!editingRecord}
         onOpenChange={(isOpen: boolean) => !isOpen && setEditingRecord(null)}
@@ -729,7 +728,7 @@ export function DataGrid({ schema }: { schema: any }) {
             setEditingRecord(null)
             fetchData()
         }}
-        triggerChild={<span />} // מסתיר את כפתור הפתיחה כי אנחנו שולטים בו דרך ה-open
+        triggerChild={<span />} 
       />
 
       <ColumnReorderDialog 

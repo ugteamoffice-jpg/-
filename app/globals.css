@@ -24,9 +24,6 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
     --radius: 0.5rem;
-    
-    /* הגדרת משתנה פונט ברירת מחדל */
-    --font-varela: 'Varela Round', sans-serif;
   }
  
   .dark {
@@ -51,16 +48,12 @@
     --ring: 212.7 26.8% 83.9%;
   }
 }
-
-/* כאן התיקון: שימוש ב-CSS רגיל במקום @apply כדי למנוע קריסות */
-body {
-  background-color: hsl(var(--background));
-  color: hsl(var(--foreground));
-  font-family: var(--font-varela), sans-serif !important;
-}
-
-/* הכרח של הפונט על כל האלמנטים במערכת */
-* {
-  font-family: var(--font-varela), sans-serif !important;
-  border-color: hsl(var(--border));
+ 
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
 }

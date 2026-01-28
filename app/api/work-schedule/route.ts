@@ -18,7 +18,6 @@ export async function GET(request: Request) {
     let endpoint = `${API_URL}/api/table/${TABLE_ID}/record?take=${take}&fieldKeyType=id`;
 
     if (dateParam) {
-      // סינון לפי תאריך (בלי משחקי שעות, מסתמך על UTC ב-Teable)
       const filterObj = {
         operator: "and",
         filterSet: [
@@ -131,7 +130,7 @@ export async function PATCH(request: Request) {
   }
 }
 
-// --- DELETE: מחיקת רשומה ---
+// --- DELETE: מחיקת רשומה (תיקון) ---
 export async function DELETE(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -142,8 +141,8 @@ export async function DELETE(request: Request) {
 
     console.log(`🗑️ Deleting record ${recordId}...`);
 
-    // Teable דורש מחיקה באמצעות שליחת מערך של IDs
-    const endpoint = `${API_URL}/api/table/${TABLE_ID}/record`;
+    // התיקון: שליחת recordIds בתוך ה-URL במקום ב-Body
+    const endpoint = `${API_URL}/api/table/${TABLE_ID}/record?recordIds=${recordId}`;
 
     const response = await fetch(endpoint, {
       method: 'DELETE',
@@ -151,16 +150,19 @@ export async function DELETE(request: Request) {
         'Authorization': `Bearer ${API_KEY}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        recordIds: [recordId]
-      }),
       cache: 'no-store'
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error("❌ Delete Error:", errorData);
-      return NextResponse.json({ error: "Delete Failed", details: errorData }, { status: response.status });
+      // אם יש שגיאה, ננסה לקרוא אותה בזהירות
+      try {
+          const errorData = await response.json();
+          console.error("❌ Delete Error JSON:", errorData);
+          return NextResponse.json({ error: "Delete Failed", details: errorData }, { status: response.status });
+      } catch (e) {
+          console.error("❌ Delete Error Text:", await response.text());
+          return NextResponse.json({ error: "Delete Failed" }, { status: response.status });
+      }
     }
 
     const data = await response.json();

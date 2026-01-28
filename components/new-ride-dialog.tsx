@@ -19,6 +19,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
 
+// מזהי השדות ב-Teable
 const FIELDS = {
   DATE: 'fldvNsQbfzMWTc7jakp',
   CUSTOMER: 'fldVy6L2DCboXUTkjBX',
@@ -40,11 +41,11 @@ const FIELDS = {
 
 interface ListItem { id: string; title: string }
 
-// --- AutoComplete מוגן מקריסות ---
+// --- AutoComplete (עם התיקון נגד קריסות) ---
 function AutoComplete({ options, value, onChange, placeholder }: any) {
   const [show, setShow] = React.useState(false)
   
-  // הגנה: המרת הערך למחרוזת בטוחה לפני חיפוש
+  // התיקון: מבטיח שזה תמיד טקסט לפני שבודקים
   const safeValue = String(value || "").toLowerCase();
   
   const filtered = options.filter((o: any) => {
@@ -86,7 +87,7 @@ export function RideDialog({ onRideSaved, initialData, triggerChild, open: contr
 
   // State
   const [dateStr, setDateStr] = React.useState(format(new Date(), "yyyy-MM-dd"))
-  const [vatRate, setVatRate] = React.useState("17") // ברירת מחדל למע"מ
+  const [vatRate, setVatRate] = React.useState("17") // מע"מ ברירת מחדל
   
   const [lists, setLists] = React.useState<{customers: ListItem[], drivers: ListItem[], vehicles: ListItem[]}>({ customers: [], drivers: [], vehicles: [] })
   
@@ -134,7 +135,6 @@ export function RideDialog({ onRideSaved, initialData, triggerChild, open: contr
         de: f[FIELDS.PRICE_DRIVER_EXCL] || "", di: f[FIELDS.PRICE_DRIVER_INCL] || ""
       })
     } else if (open && !initialData) {
-        // איפוס
         setForm({
             customer: "", description: "", pickup: "", dropoff: "", vehicleType: "",
             driver: "", vehicleNum: "", notes: "", orderName: "", mobile: "", idNum: ""
@@ -144,7 +144,7 @@ export function RideDialog({ onRideSaved, initialData, triggerChild, open: contr
     }
   }, [open, initialData])
 
-  // --- לוגיקת חישוב מע"מ (הוחזרה!) ---
+  // חישוב מע"מ
   const calculateVat = (value: string, type: 'excl' | 'incl', field: 'client' | 'driver') => {
     const numVal = parseFloat(value)
     const rate = 1 + (parseFloat(vatRate) / 100)
@@ -219,7 +219,11 @@ export function RideDialog({ onRideSaved, initialData, triggerChild, open: contr
         <DialogHeader><DialogTitle>{isEdit ? "עריכת נסיעה" : "נסיעה חדשה"}</DialogTitle></DialogHeader>
         <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
           <Tabs defaultValue="details" className="flex-1 flex flex-col overflow-hidden">
-            <TabsList className="grid w-full grid-cols-3"><TabsTrigger value="details">פרטים</TabsTrigger><TabsTrigger value="prices">מחירים</TabsTrigger><TabsTrigger value="extra">נוסף</TabsTrigger></TabsList>
+            <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="details">פרטי נסיעה</TabsTrigger>
+                <TabsTrigger value="prices">מחירים</TabsTrigger>
+                <TabsTrigger value="extra">פרטים נוספים</TabsTrigger>
+            </TabsList>
             
             <div className="flex-1 overflow-y-auto p-4 border rounded mt-2">
               <TabsContent value="details" className="space-y-4">
@@ -236,7 +240,7 @@ export function RideDialog({ onRideSaved, initialData, triggerChild, open: contr
                 <div className="space-y-1"><Label>הערות נהג</Label><Textarea value={form.notes} onChange={e => setForm(p => ({...p, notes: e.target.value}))} className="text-right"/></div>
               </TabsContent>
 
-              {/* --- החזרתי את העיצוב של לשונית המחירים --- */}
+              {/* --- החזרתי את העיצוב המלא! --- */}
               <TabsContent value="prices" className="space-y-6">
                  <div className="flex items-center gap-2 p-2 bg-secondary/30 rounded-md w-fit">
                     <Label>מע"מ %:</Label>

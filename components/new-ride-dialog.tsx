@@ -40,7 +40,7 @@ const FIELDS = {
 
 interface ListItem { id: string; title: string }
 
-// --- התיקון לקריסה נמצא כאן ---
+// --- AutoComplete מוגן מקריסות ---
 function AutoComplete({ options, value, onChange, placeholder }: any) {
   const [show, setShow] = React.useState(false)
   
@@ -78,29 +78,32 @@ export function RideDialog({ onRideSaved, initialData, triggerChild, open: contr
   const [loading, setLoading] = React.useState(false)
   const { toast } = useToast()
   
-  // לוגיקה חכמה: אם קיבלנו open מבחוץ - נשתמש בו. אחרת - נשתמש ב-state הפנימי.
   const isControlled = controlledOpen !== undefined;
   const open = isControlled ? controlledOpen : internalOpen;
   const setOpen = isControlled ? setControlledOpen : setInternalOpen;
 
   const isEdit = !!initialData
 
+  // State
   const [dateStr, setDateStr] = React.useState(format(new Date(), "yyyy-MM-dd"))
+  const [vatRate, setVatRate] = React.useState("17") // ברירת מחדל למע"מ
+  
   const [lists, setLists] = React.useState<{customers: ListItem[], drivers: ListItem[], vehicles: ListItem[]}>({ customers: [], drivers: [], vehicles: [] })
   
   const [form, setForm] = React.useState({
     customer: "", description: "", pickup: "", dropoff: "", vehicleType: "",
     driver: "", vehicleNum: "", notes: "", orderName: "", mobile: "", idNum: ""
   })
+  
   const [prices, setPrices] = React.useState({ ce: "", ci: "", de: "", di: "" })
 
+  // טעינת רשימות
   React.useEffect(() => {
     if (open && lists.customers.length === 0) {
       const load = async (url: string) => {
         try { 
             const r = await fetch(url); 
             const d = await r.json(); 
-            // הגנה נוספת בעת טעינת הנתונים
             return d.records ? d.records.map((x: any) => ({ 
                 id: x.id, 
                 title: x.fields && Object.values(x.fields)[0] ? String(Object.values(x.fields)[0]) : "" 
@@ -112,6 +115,7 @@ export function RideDialog({ onRideSaved, initialData, triggerChild, open: contr
     }
   }, [open])
 
+  // מילוי טופס בעריכה
   React.useEffect(() => {
     if (open && initialData) {
       const f = initialData.fields
@@ -130,6 +134,7 @@ export function RideDialog({ onRideSaved, initialData, triggerChild, open: contr
         de: f[FIELDS.PRICE_DRIVER_EXCL] || "", di: f[FIELDS.PRICE_DRIVER_INCL] || ""
       })
     } else if (open && !initialData) {
+        // איפוס
         setForm({
             customer: "", description: "", pickup: "", dropoff: "", vehicleType: "",
             driver: "", vehicleNum: "", notes: "", orderName: "", mobile: "", idNum: ""
@@ -138,6 +143,28 @@ export function RideDialog({ onRideSaved, initialData, triggerChild, open: contr
         setDateStr(format(new Date(), "yyyy-MM-dd"))
     }
   }, [open, initialData])
+
+  // --- לוגיקת חישוב מע"מ (הוחזרה!) ---
+  const calculateVat = (value: string, type: 'excl' | 'incl', field: 'client' | 'driver') => {
+    const numVal = parseFloat(value)
+    const rate = 1 + (parseFloat(vatRate) / 100)
+    
+    if (isNaN(numVal)) {
+      if (field === 'client') setPrices(prev => ({ ...prev, ce: "", ci: "" }))
+      else setPrices(prev => ({ ...prev, de: "", di: "" }))
+      return
+    }
+
+    if (type === 'excl') {
+      const incl = (numVal * rate).toFixed(2)
+      if (field === 'client') setPrices(prev => ({ ...prev, ce: value, ci: incl }))
+      else setPrices(prev => ({ ...prev, de: value, di: incl }))
+    } else {
+      const excl = (numVal / rate).toFixed(2)
+      if (field === 'client') setPrices(prev => ({ ...prev, ci: value, ce: excl }))
+      else setPrices(prev => ({ ...prev, di: value, de: excl }))
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -173,16 +200,10 @@ export function RideDialog({ onRideSaved, initialData, triggerChild, open: contr
       onRideSaved()
     } catch { toast({ title: "שגיאה", variant: "destructive" }) } finally { setLoading(false) }
   }
-
-  // כאן אנחנו מחליטים איך להציג את הטריגר
-  // אם העבירו triggerChild - משתמשים בו (למשל כפתור 'צור נסיעה' למעלה)
-  // אם לא העבירו, וזה לא controlled (כלומר זה שימוש ברירת מחדל) - מציגים כפתור ברירת מחדל
-  // במקרה של הטבלה (עריכה), אנחנו בכלל לא משתמשים בטריגר אלא ב-props של open
   
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       
-      {/* הצגת הכפתור רק אם הועבר כזה, או אם אנחנו במצב לא מבוקר */}
       {!isControlled && (
           <DialogTrigger asChild>
             {triggerChild ? triggerChild : (
@@ -194,13 +215,12 @@ export function RideDialog({ onRideSaved, initialData, triggerChild, open: contr
           </DialogTrigger>
       )}
 
-      {/* אם זה מבוקר (מהטבלה), הטריגר הוא חיצוני ולא צריך להיות כאן, אבל ה-DialogContent כן */}
-
       <DialogContent className="sm:max-w-[700px] h-[80vh] flex flex-col" dir="rtl">
         <DialogHeader><DialogTitle>{isEdit ? "עריכת נסיעה" : "נסיעה חדשה"}</DialogTitle></DialogHeader>
         <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
           <Tabs defaultValue="details" className="flex-1 flex flex-col overflow-hidden">
             <TabsList className="grid w-full grid-cols-3"><TabsTrigger value="details">פרטים</TabsTrigger><TabsTrigger value="prices">מחירים</TabsTrigger><TabsTrigger value="extra">נוסף</TabsTrigger></TabsList>
+            
             <div className="flex-1 overflow-y-auto p-4 border rounded mt-2">
               <TabsContent value="details" className="space-y-4">
                 <div className="space-y-1"><Label>תאריך</Label><Input type="date" value={dateStr} onChange={e => setDateStr(e.target.value)} className="text-right"/></div>
@@ -215,12 +235,43 @@ export function RideDialog({ onRideSaved, initialData, triggerChild, open: contr
                 <div className="space-y-1"><Label>מס' רכב</Label><Input value={form.vehicleNum} onChange={e => setForm(p => ({...p, vehicleNum: e.target.value}))} className="text-right"/></div>
                 <div className="space-y-1"><Label>הערות נהג</Label><Textarea value={form.notes} onChange={e => setForm(p => ({...p, notes: e.target.value}))} className="text-right"/></div>
               </TabsContent>
-              <TabsContent value="prices" className="space-y-4">
-                 <div className="grid grid-cols-2 gap-4">
-                    <div className="p-2 border rounded"><Label>מחיר לקוח (לפני מע"מ)</Label><Input type="number" value={prices.ce} onChange={e => setPrices(p => ({...p, ce: e.target.value}))}/></div>
-                    <div className="p-2 border rounded"><Label>מחיר נהג (לפני מע"מ)</Label><Input type="number" value={prices.de} onChange={e => setPrices(p => ({...p, de: e.target.value}))}/></div>
+
+              {/* --- החזרתי את העיצוב של לשונית המחירים --- */}
+              <TabsContent value="prices" className="space-y-6">
+                 <div className="flex items-center gap-2 p-2 bg-secondary/30 rounded-md w-fit">
+                    <Label>מע"מ %:</Label>
+                    <Input value={vatRate} onChange={(e) => setVatRate(e.target.value)} className="w-16 h-8 text-center" />
+                 </div>
+                 
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* צד לקוח - כחול */}
+                    <div className="space-y-4 p-4 border rounded-lg bg-blue-50/50">
+                        <h3 className="font-bold text-blue-700 text-center border-b pb-2">מחיר לקוח</h3>
+                        <div className="space-y-2">
+                            <Label>לפני מע"מ</Label>
+                            <Input type="number" value={prices.ce} onChange={(e) => calculateVat(e.target.value, 'excl', 'client')} className="text-right bg-white" />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>כולל מע"מ</Label>
+                            <Input type="number" value={prices.ci} onChange={(e) => calculateVat(e.target.value, 'incl', 'client')} className="text-right font-bold bg-white" />
+                        </div>
+                    </div>
+
+                    {/* צד נהג - כתום */}
+                    <div className="space-y-4 p-4 border rounded-lg bg-orange-50/50">
+                        <h3 className="font-bold text-orange-700 text-center border-b pb-2">מחיר נהג</h3>
+                        <div className="space-y-2">
+                            <Label>לפני מע"מ</Label>
+                            <Input type="number" value={prices.de} onChange={(e) => calculateVat(e.target.value, 'excl', 'driver')} className="text-right bg-white" />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>כולל מע"מ</Label>
+                            <Input type="number" value={prices.di} onChange={(e) => calculateVat(e.target.value, 'incl', 'driver')} className="text-right font-bold bg-white" />
+                        </div>
+                    </div>
                  </div>
               </TabsContent>
+
               <TabsContent value="extra" className="space-y-4">
                 <div className="space-y-1"><Label>מזמין</Label><Input value={form.orderName} onChange={e => setForm(p => ({...p, orderName: e.target.value}))} className="text-right"/></div>
                 <div className="space-y-1"><Label>נייד</Label><Input value={form.mobile} onChange={e => setForm(p => ({...p, mobile: e.target.value}))} className="text-right"/></div>

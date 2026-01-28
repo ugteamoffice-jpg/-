@@ -36,7 +36,7 @@ import { useToast } from "@/hooks/use-toast"
 // סוג פריט לרשימות בחירה
 interface ListItem {
   id: string
-  title: string // Teable תמיד מחזיר שדה title לרשומה (העמודה הראשית)
+  title: string
 }
 
 export function NewRideDialog({ onRideCreated }: { onRideCreated: () => void }) {
@@ -53,35 +53,54 @@ export function NewRideDialog({ onRideCreated }: { onRideCreated: () => void }) 
   const [driversList, setDriversList] = React.useState<ListItem[]>([])
   const [vehiclesList, setVehiclesList] = React.useState<ListItem[]>([])
 
-  // טעינת נתונים (לקוחות, נהגים, רכבים) בעת פתיחת החלון או בטעינה ראשונית
+  // פונקציית עזר לחילוץ שם רשומה (לוקחת את הערך הראשון ב-fields)
+  const getRecordName = (record: any) => {
+      if (!record.fields) return record.id;
+      const values = Object.values(record.fields);
+      // מחזיר את הערך הראשון שנמצא, או את ה-ID אם אין כלום
+      return values.length > 0 ? String(values[0]) : record.id;
+  };
+
+  // טעינת נתונים
   React.useEffect(() => {
     if (open) {
-        const fetchLists = async () => {
-            try {
-                // משיכת לקוחות
-                fetch('/api/customers').then(res => res.json()).then(data => {
-                    if (data.records) setCustomersList(data.records.map((r: any) => ({ id: r.id, title: r.fields.fldTitle || r.id }))) 
-                    // הערה: ב-Teable ה-title הוא לעיתים קרובות השדה הראשי, נצטרך לוודא שזה השדה הנכון אצלך.
-                    // לרוב זה מגיע אוטומטית כ-title ב-JSON, או כשדה הראשון. כאן הנחתי שיש שדה ראשי.
-                    // אם זה לא עובד נצטרך לבדוק את מבנה ה-JSON המדויק. 
-                    // כרגע נשתמש בלוגיקה גנרית שמחפשת את הערך הראשון.
-                });
+        console.log("Fetching lists...") // לוג לבדיקה
 
-                // משיכת נהגים
-                fetch('/api/drivers').then(res => res.json()).then(data => {
-                     if (data.records) setDriversList(data.records)
-                });
+        // משיכת לקוחות
+        fetch('/api/customers')
+            .then(res => res.json())
+            .then(data => {
+                if (data.records) {
+                    const list = data.records.map((r: any) => ({ id: r.id, title: getRecordName(r) }));
+                    setCustomersList(list);
+                    console.log("Customers loaded:", list);
+                }
+            })
+            .catch(err => console.error("Error fetching customers:", err));
 
-                // משיכת רכבים
-                fetch('/api/vehicles').then(res => res.json()).then(data => {
-                     if (data.records) setVehiclesList(data.records)
-                });
+        // משיכת נהגים
+        fetch('/api/drivers')
+            .then(res => res.json())
+            .then(data => {
+                if (data.records) {
+                    const list = data.records.map((r: any) => ({ id: r.id, title: getRecordName(r) }));
+                    setDriversList(list);
+                    console.log("Drivers loaded:", list);
+                }
+            })
+            .catch(err => console.error("Error fetching drivers:", err));
 
-            } catch (err) {
-                console.error("Failed to fetch lists", err)
-            }
-        }
-        fetchLists()
+        // משיכת רכבים
+        fetch('/api/vehicles')
+            .then(res => res.json())
+            .then(data => {
+                if (data.records) {
+                    const list = data.records.map((r: any) => ({ id: r.id, title: getRecordName(r) }));
+                    setVehiclesList(list);
+                    console.log("Vehicles loaded:", list);
+                }
+            })
+            .catch(err => console.error("Error fetching vehicles:", err));
     }
   }, [open])
 
@@ -303,10 +322,11 @@ export function NewRideDialog({ onRideCreated }: { onRideCreated: () => void }) 
                     onChange={handleChange} 
                     className="text-right" 
                     placeholder="בחר או הקלד סוג רכב..."
+                    autoComplete="off"
                   />
                   <datalist id="vehicleTypes">
                     {vehiclesList.map((item, idx) => (
-                        <option key={idx} value={item.title || item.id} />
+                        <option key={idx} value={item.title} />
                     ))}
                   </datalist>
                 </div>
@@ -322,10 +342,11 @@ export function NewRideDialog({ onRideCreated }: { onRideCreated: () => void }) 
                     onChange={handleChange} 
                     className="text-right" 
                     placeholder="בחר או הקלד לקוח..."
+                    autoComplete="off"
                   />
                   <datalist id="customers">
                     {customersList.map((item, idx) => (
-                        <option key={idx} value={item.title || item.id} />
+                        <option key={idx} value={item.title} />
                     ))}
                   </datalist>
                 </div>
@@ -341,10 +362,11 @@ export function NewRideDialog({ onRideCreated }: { onRideCreated: () => void }) 
                     onChange={handleChange} 
                     className="text-right" 
                     placeholder="בחר או הקלד נהג..."
+                    autoComplete="off"
                   />
                   <datalist id="drivers">
                     {driversList.map((item, idx) => (
-                        <option key={idx} value={item.title || item.id} />
+                        <option key={idx} value={item.title} />
                     ))}
                   </datalist>
                 </div>
